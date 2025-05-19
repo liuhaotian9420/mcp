@@ -1,4 +1,4 @@
-# This file makes Python treat the directory as a package. 
+# This file makes Python treat the directory as a package.
 """
 This is the MCP Modelservice SDK.
 This SDK aims to provide a command-line interface to create a MCP service from
@@ -16,4 +16,3 @@ Roadmap:
 """
 
 __version__ = "0.1.0"
-

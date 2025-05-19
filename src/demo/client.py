@@ -1,6 +1,7 @@
 """
 A demonstration on how an MCP client interacts with a MCP server.
 """
+
 import requests
 import json
 import time

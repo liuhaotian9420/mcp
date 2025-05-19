@@ -1,6 +1,7 @@
 """
 Module for discovering Python files and functions.
 """
+
 import importlib.util
 import logging
 import os
@@ -10,8 +11,10 @@ from typing import Any, Callable, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
+
 class ValidFileTypes(Enum):
     PYTHON = ".py"
+
 
 def discover_py_files(source_path_str: str) -> List[pathlib.Path]:
     """
@@ -41,20 +44,20 @@ def discover_py_files(source_path_str: str) -> List[pathlib.Path]:
             )
     elif source_path.is_dir():
         for root, _, files in os.walk(source_path):
-            for file_name in files: # Renamed 'file' to 'file_name' to avoid conflict
+            for file_name in files:  # Renamed 'file' to 'file_name' to avoid conflict
                 if file_name.endswith(ValidFileTypes.PYTHON.value):
                     py_files.append(pathlib.Path(root) / file_name)
     else:
-        raise ValueError(
-            f"Source path is not a file or directory: {source_path_str}"
-        )
-    
+        raise ValueError(f"Source path is not a file or directory: {source_path_str}")
+
     if not py_files:
         logger.warning(f"No Python files found in: {source_path_str}")
     return py_files
 
 
-def _load_module_from_path(file_path: pathlib.Path) -> Optional[Any]: # Changed to Any from types.ModuleType for broader compatibility
+def _load_module_from_path(
+    file_path: pathlib.Path,
+) -> Optional[Any]:  # Changed to Any from types.ModuleType for broader compatibility
     """
     Loads a Python module dynamically from a file path.
 
@@ -72,7 +75,10 @@ def _load_module_from_path(file_path: pathlib.Path) -> Optional[Any]: # Changed 
             spec.loader.exec_module(module)
             return module
         except Exception as e:
-            logger.error(f"Failed to load module '{module_name}' from '{file_path}': {e}", exc_info=True)
+            logger.error(
+                f"Failed to load module '{module_name}' from '{file_path}': {e}",
+                exc_info=True,
+            )
             return None
     else:
         logger.error(f"Could not create module spec for '{file_path}'")
@@ -81,7 +87,7 @@ def _load_module_from_path(file_path: pathlib.Path) -> Optional[Any]: # Changed 
 
 def discover_functions(
     file_paths: List[pathlib.Path], target_function_names: Optional[List[str]] = None
-) -> List[Tuple[Callable[..., Any], str, pathlib.Path]]: # Made Callable more specific
+) -> List[Tuple[Callable[..., Any], str, pathlib.Path]]:  # Made Callable more specific
     """
     Discovers functions from a list of Python files.
 
@@ -95,7 +101,7 @@ def discover_functions(
     """
     discovered_functions: List[Tuple[Callable[..., Any], str, pathlib.Path]] = []
     function_name_set = set(target_function_names) if target_function_names else None
-    import inspect # Moved import here as it's only used in this function
+    import inspect  # Moved import here as it's only used in this function
 
     for file_path in file_paths:
         module = _load_module_from_path(file_path)
@@ -105,9 +111,11 @@ def discover_functions(
                     if function_name_set is None or name in function_name_set:
                         discovered_functions.append((member, name, file_path))
                         if function_name_set and name in function_name_set:
-                             function_name_set.remove(name) 
+                            function_name_set.remove(name)
 
-    if function_name_set and len(function_name_set) > 0: 
-        logger.warning(f"Could not find the following specified functions: {list(function_name_set)}")
+    if function_name_set and len(function_name_set) > 0:
+        logger.warning(
+            f"Could not find the following specified functions: {list(function_name_set)}"
+        )
 
-    return discovered_functions 
+    return discovered_functions

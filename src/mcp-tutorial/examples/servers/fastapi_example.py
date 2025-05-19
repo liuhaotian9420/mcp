@@ -5,6 +5,7 @@ A FastAPI-MCP example service exposing simple arithmetic operations as MCP tools
 - Each endpoint is ready for LLM integration and TDD
 - Production-grade structure, docstrings, and type hints
 """
+
 import os
 
 from fastapi import FastAPI, Query
@@ -32,8 +33,6 @@ logging.basicConfig(
 
 # Create logger for this module
 logger = logging.getLogger(__name__)
-
-
 
 
 class Log(BaseModel):
@@ -191,7 +190,9 @@ def configure_mcp(app: FastAPI) -> FastApiMCP:
     @mcp.server.read_resource()
     async def read_resource(uri: AnyUrl) -> AsyncIterable[TextResourceContents]:
         if str(uri) == "file:///logs/app.log":
-            yield TextResourceContents(uri=uri, text="logs!!!!!!!!!", mimeType="text/plain")
+            yield TextResourceContents(
+                uri=uri, text="logs!!!!!!!!!", mimeType="text/plain"
+            )
             yield TextResourceContents(uri=uri, text="logs!?!!!", mimeType="text/plain")
             return
         raise ValueError(f"Unknown resource: {uri}")

@@ -1,10 +1,11 @@
 """
 Module for building the MCP Starlette application.
 """
+
 import inspect
 import logging
 import pathlib
-from typing import Any, Callable, List, Optional, Tuple, Dict # Added Dict
+from typing import Any, Callable, List, Optional  # Added Dict
 
 from starlette.applications import Starlette
 from starlette.routing import Mount
@@ -19,16 +20,22 @@ except ImportError:
         "You can typically install it using: pip install fastmcp"
     )
 
-from .discovery import discover_py_files, discover_functions # Relative import
+from .discovery import discover_py_files, discover_functions  # Relative import
 
 logger = logging.getLogger(__name__)
 
+
 class TransformationError(Exception):
     """Custom exception for errors during the transformation process."""
+
     pass
 
+
 def _validate_and_wrap_tool(
-    mcp_instance: FastMCP, func: Callable[..., Any], func_name: str, file_path: pathlib.Path
+    mcp_instance: FastMCP,
+    func: Callable[..., Any],
+    func_name: str,
+    file_path: pathlib.Path,
 ):
     """
     Validates function signature and docstring, then wraps it as an MCP tool.
@@ -43,10 +50,14 @@ def _validate_and_wrap_tool(
         sig = inspect.signature(func)
         missing_param_docs = []
         for p_name in sig.parameters:
-            if not (f":param {p_name}:" in docstring or f"Args:\n    {p_name} (" in docstring or f"{p_name} (" in docstring):
-                 missing_param_docs.append(p_name)
+            if not (
+                f":param {p_name}:" in docstring
+                or f"Args:\n    {p_name} (" in docstring
+                or f"{p_name} (" in docstring
+            ):
+                missing_param_docs.append(p_name)
         if missing_param_docs:
-             logger.warning(
+            logger.warning(
                 f"Docstring for function '{func_name}' in '{file_path}' may be missing descriptions for parameters: {', '.join(missing_param_docs)}."
             )
 
@@ -63,9 +74,15 @@ def _validate_and_wrap_tool(
 
     try:
         mcp_instance.tool(name=func_name)(func)
-        logger.info(f"Successfully wrapped function '{func_name}' from '{file_path}' as an MCP tool.")
+        logger.info(
+            f"Successfully wrapped function '{func_name}' from '{file_path}' as an MCP tool."
+        )
     except Exception as e:
-        logger.error(f"Failed to wrap function '{func_name}' from '{file_path}' as an MCP tool: {e}", exc_info=True)
+        logger.error(
+            f"Failed to wrap function '{func_name}' from '{file_path}' as an MCP tool: {e}",
+            exc_info=True,
+        )
+
 
 def create_mcp_application(
     source_path_str: str,
@@ -91,7 +108,7 @@ def create_mcp_application(
 
     Returns:
         A configured Starlette application.
-        
+
     Raises:
         TransformationError: If no tools could be created or other critical errors occur.
     """
@@ -112,7 +129,9 @@ def create_mcp_application(
 
     if not py_files:
         logger.error("No Python files found to process. Cannot create any MCP tools.")
-        raise TransformationError("No Python files found to process. Ensure the path is correct and contains Python files.")
+        raise TransformationError(
+            "No Python files found to process. Ensure the path is correct and contains Python files."
+        )
 
     functions_to_wrap = discover_functions(py_files, target_function_names)
 
@@ -121,24 +140,34 @@ def create_mcp_application(
         if target_function_names:
             message += f" (Specified functions: {target_function_names} not found, or no functions in source matching criteria)."
         else:
-            message += " (No functions discovered in the source path matching criteria)."
+            message += (
+                " (No functions discovered in the source path matching criteria)."
+            )
         logger.error(message)
         raise TransformationError(message)
-    
+
     for func, func_name, file_path in functions_to_wrap:
         logger.info(f"Processing function '{func_name}' from {file_path}...")
         _validate_and_wrap_tool(mcp_instance, func, func_name, file_path)
 
-    if not mcp_instance.tools: # type: ignore[attr-defined]
-        logger.error("No tools were successfully created and registered with FastMCP instance.")
-        raise TransformationError("No tools were successfully created and registered. Check logs for function-specific errors.")
-    logger.info(f"Successfully created and registered {len(mcp_instance.tools)} MCP tool(s).") # type: ignore[attr-defined]
+    if not mcp_instance.tools:  # type: ignore[attr-defined]
+        logger.error(
+            "No tools were successfully created and registered with FastMCP instance."
+        )
+        raise TransformationError(
+            "No tools were successfully created and registered. Check logs for function-specific errors."
+        )
+    logger.info(
+        f"Successfully created and registered {len(mcp_instance.tools)} MCP tool(s)."
+    )  # type: ignore[attr-defined]
 
     mcp_asgi_app = mcp_instance.http_app(path=mcp_service_base_path)
-    
+
     current_middleware = []
     if cors_enabled:
-        effective_cors_origins = cors_allow_origins if cors_allow_origins is not None else ["*"]
+        effective_cors_origins = (
+            cors_allow_origins if cors_allow_origins is not None else ["*"]
+        )
         current_middleware.append(
             Middleware(
                 CORSMiddleware,
@@ -150,30 +179,34 @@ def create_mcp_application(
         )
 
     app_lifespan = None
-    if hasattr(mcp_asgi_app, 'router') and hasattr(mcp_asgi_app.router, 'lifespan_context'):
+    if hasattr(mcp_asgi_app, "router") and hasattr(
+        mcp_asgi_app.router, "lifespan_context"
+    ):
         app_lifespan = mcp_asgi_app.router.lifespan_context
-    elif hasattr(mcp_asgi_app, 'lifespan'):
-        app_lifespan = mcp_asgi_app.lifespan # type: ignore[attr-defined]
+    elif hasattr(mcp_asgi_app, "lifespan"):
+        app_lifespan = mcp_asgi_app.lifespan  # type: ignore[attr-defined]
     else:
-        logger.warning("Could not determine lifespan context for FastMCP ASGI app. Lifespan features may not work correctly.")
+        logger.warning(
+            "Could not determine lifespan context for FastMCP ASGI app. Lifespan features may not work correctly."
+        )
 
     class AppState:
         fastmcp_instance: FastMCP
 
     state = AppState()
-    state.fastmcp_instance = mcp_instance # type: ignore
+    state.fastmcp_instance = mcp_instance  # type: ignore
 
     app = Starlette(
         routes=[
             Mount(mcp_server_root_path, app=mcp_asgi_app),
         ],
-        lifespan=app_lifespan, 
+        lifespan=app_lifespan,
         middleware=current_middleware if current_middleware else None,
     )
-    app.state = state # type: ignore[attr-defined]
+    app.state = state  # type: ignore[attr-defined]
 
     logger.info(
         f"Starlette application created. MCP service '{mcp_server_name}' "
         f"will be mounted at '{mcp_server_root_path}{mcp_service_base_path}'."
     )
-    return app 
+    return app
