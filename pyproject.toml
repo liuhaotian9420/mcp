@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mcp-modelservice-sdk"
-version = "0.1.0"
+version = "0.1.1"
 description = "A CLI for the MCP Modelservice Example"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -23,3 +23,11 @@ dependencies = [
 
 [project.scripts]
 mcp-modelservice = "mcp_modelservice_sdk.cli:app"
+
+[project.optional-dependencies]
+test = [
+    "ruff>=0.9.10",
+    "mypy>=1.0.0",
+    "build>=1.0.0",
+    "twine>=4.0.0"
+]

@@ -1,5 +1,7 @@
 # MCP 项目教程
 
+*[English Version](README.en.md)*
+
 欢迎来到 MCP (模型上下文协议) 项目教程！本指南将引导您使用 Python 创建启用 MCP 的服务，主要使用 `fastapi-mcp` 和 `fastmcp` 库。
 
 ## 概述
@@ -12,6 +14,24 @@
 4.  **包装外部服务**：理解 MCP 工具如何充当外部服务的客户端。
 
 我们将探讨位于 `src/mcp_project/` 和 `src/mcp_project/examples/` 目录中的各种示例文件。
+
+## CI/CD
+
+本项目使用 GitHub Actions 进行持续集成和部署。工作流程在以下情况下自动运行：
+
+- 推送到主分支时运行测试
+- 拉取请求到主分支时运行测试
+- 推送带 `v*` 标签的提交时构建并发布到 PyPI
+- 支持从 GitHub Actions UI 手动触发
+
+要发布新版本：
+
+1. 更新 `pyproject.toml` 中的版本号
+2. 提交更改：`git commit -am "Bump version to X.Y.Z"`
+3. 添加标签：`git tag vX.Y.Z`
+4. 推送更改和标签：`git push && git push --tags`
+
+更多详情请参阅 [.github/README.md](.github/README.md)。
 
 ## 先决条件
 
