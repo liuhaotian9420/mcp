@@ -21,7 +21,6 @@ try:
         _validate_and_wrap_tool,  # For more direct testing if needed, though typically tested via create_mcp_application
         create_mcp_application,
         TransformationError,
-        ValidFileTypes,
         package_mcp_application,  # Added import
     )
     from fastmcp import FastMCP
