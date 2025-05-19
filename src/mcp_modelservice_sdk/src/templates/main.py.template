@@ -1,0 +1,88 @@
+# Generated main.py for MCP Model Service
+import uvicorn
+import logging
+import sys
+import pathlib
+
+# SDK modules are now bundled within the 'mcp_sdk_runtime' directory
+# The SDK_CORE_MODULE_PATH constant is no longer needed for these imports.
+
+try:
+    # Import from the bundled mcp_sdk_runtime package
+    from mcp_sdk_runtime.app_builder import create_mcp_application, TransformationError
+    from mcp_sdk_runtime.core import _setup_logging 
+except ImportError as e:
+    sys.stderr.write("Failed to import bundled MCP SDK modules from 'mcp_sdk_runtime'. This indicates a packaging error.\n")
+    sys.stderr.write(f"Error details: {e}\n")
+    sys.exit(1)
+
+_main_py_dir = pathlib.Path(__file__).parent.resolve()
+SOURCE_PATH = str((_main_py_dir / "{original_source_path_in_package}").resolve())
+
+TARGET_FUNCTIONS = {functions_list_str}
+MCP_SERVER_NAME = "{mcp_server_name}"
+MCP_SERVER_ROOT_PATH = "{mcp_server_root_path}"
+MCP_SERVICE_BASE_PATH = "{mcp_service_base_path}"
+LOG_LEVEL = "{log_level}"
+CORS_ENABLED = {cors_enabled}
+CORS_ALLOW_ORIGINS = {cors_origins_list_str}
+HOST = "{effective_host}"
+PORT = {effective_port}
+RELOAD = {reload_dev_mode}
+WORKERS = {workers_uvicorn}
+
+main_logger = logging.getLogger("mcp_package_main")
+
+if __name__ == "__main__":
+    try:
+        # _setup_logging is from the bundled core.py now
+        _setup_logging(LOG_LEVEL) 
+    except NameError: 
+        # This fallback might still be useful if _setup_logging itself had an issue
+        logging.basicConfig(level=LOG_LEVEL.upper(), format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", force=True)
+        main_logger = logging.getLogger("mcp_package_main") 
+        main_logger.setLevel(LOG_LEVEL.upper())
+        main_logger.info("Initialized basic logging due to _setup_logging not being found directly or failing.")
+    # except Exception as e_log: # Broader catch for logging setup issues
+    #     sys.stderr.write(f"Error setting up logging via bundled SDK: {e_log}\n. Falling back to basic config.\n")
+    #     logging.basicConfig(level=LOG_LEVEL.upper(), format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", force=True)
+    #     main_logger = logging.getLogger("mcp_package_main") 
+    #     main_logger.setLevel(LOG_LEVEL.upper())
+
+    main_logger.info(f"Starting MCP service '{{MCP_SERVER_NAME}}' from source: {{SOURCE_PATH}}")
+    if TARGET_FUNCTIONS:
+        main_logger.info(f"Targeting functions: {{TARGET_FUNCTIONS}}")
+    try:
+        # create_mcp_application is from the bundled app_builder.py
+        mcp_app = create_mcp_application(
+            source_path_str=SOURCE_PATH,
+            target_function_names=TARGET_FUNCTIONS,
+            mcp_server_name=MCP_SERVER_NAME,
+            mcp_server_root_path=MCP_SERVER_ROOT_PATH,
+            mcp_service_base_path=MCP_SERVICE_BASE_PATH,
+            cors_enabled=CORS_ENABLED,
+            cors_allow_origins=CORS_ALLOW_ORIGINS
+        )
+        main_logger.info(f"MCP application '{{MCP_SERVER_NAME}}' created.")
+        uvicorn_log_level = LOG_LEVEL.lower()
+        if uvicorn_log_level not in ["critical", "error", "warning", "info", "debug", "trace"]:
+            main_logger.warning(f"Invalid log level '{{LOG_LEVEL}}' for Uvicorn. Defaulting to 'info'.")
+            uvicorn_log_level = "info"
+        main_logger.info(f"Running Uvicorn on {{HOST}}:{{PORT}} with log level {{uvicorn_log_level}}")
+        uvicorn.run(
+            mcp_app,
+            host=HOST,
+            port=PORT,
+            log_level=uvicorn_log_level,
+            reload=RELOAD,
+            workers=WORKERS if WORKERS is not None else None,
+        )
+    except TransformationError as e: # TransformationError is from the bundled app_builder.py
+        main_logger.error(f"Failed to create MCP application: {{e}}")
+        sys.exit(1)
+    except FileNotFoundError as e:
+        main_logger.error(f"Error finding source file within package: {{e}}")
+        sys.exit(1)
+    except Exception as e:
+        main_logger.error(f"An unexpected error occurred: {{e}}", exc_info=True)
+        sys.exit(1) 
