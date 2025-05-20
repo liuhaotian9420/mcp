@@ -1,5 +1,8 @@
 """
 Module for building MCP model service packages.
+
+This module provides functionality for packaging MCP services using a lightweight approach
+that directly leverages the CLI rather than generating Python files.
 """
 
 import logging
@@ -11,10 +14,8 @@ from .app_builder import TransformationError
 from .packaging_utils import (
     _copy_source_code,
     _get_tool_documentation_details,
-    _generate_main_py_content,
     _generate_start_sh_content,
     _generate_readme_md_content,
-    _copy_sdk_runtime_files,
 )
 # Assuming _setup_logging will be exposed via core or a new utils module
 # from .core import _setup_logging
@@ -29,20 +30,40 @@ def build_mcp_package(
     mcp_server_name: str,
     mcp_server_root_path: str,
     mcp_service_base_path: str,
-    log_level: str,  # log_level is used to call _setup_logging if it were here
+    log_level: str,
     cors_enabled: bool,
     cors_allow_origins: List[str],
     effective_host: str,
     effective_port: int,
     reload_dev_mode: bool,
     workers_uvicorn: Optional[int],
-    cli_logger: logging.Logger,  # cli_logger is used as packaging_logger
+    cli_logger: logging.Logger,  # Logger to use for packaging messages
 ):
-    """Main function to build the MCP package."""
-    # _setup_logging(log_level) # Call to setup logging for this module's operations if needed.
-    # This was present in the original build_mcp_package.
-    # If _setup_logging is imported, it can be called here.
-    # For now, using cli_logger directly for packaging messages.
+    """
+    Build an MCP package for deployment using a lightweight CLI-based approach.
+
+    This function packages user Python files into a deployable service by generating
+    a start.sh script that directly uses the MCP CLI to run the service. This approach
+    eliminates the need for generating Python files, making the package simpler and
+    more maintainable.
+
+    Args:
+        package_name_from_cli: Base name for the output package.
+        source_path_str: Path to the Python file or directory containing functions.
+        target_function_names: Optional list of specific function names to expose.
+        mcp_server_name: Name for the FastMCP server.
+        mcp_server_root_path: Root path for the MCP service in Starlette.
+        mcp_service_base_path: Base path for MCP protocol endpoints.
+        log_level: Logging level for the service.
+        cors_enabled: Whether to enable CORS middleware.
+        cors_allow_origins: List of origins to allow for CORS.
+        effective_host: Host to configure in the packaged service.
+        effective_port: Port to configure in the packaged service.
+        reload_dev_mode: Whether to enable auto-reload in the packaged service.
+        workers_uvicorn: Number of worker processes for uvicorn.
+        cli_logger: Logger to use for packaging messages.
+    """
+    # Use the provided logger for packaging messages
     packaging_logger = cli_logger
     source_path_obj = pathlib.Path(source_path_str).resolve()
     if not source_path_obj.exists():
@@ -87,18 +108,18 @@ def build_mcp_package(
         project_dir.mkdir(parents=True, exist_ok=True)
         packaging_logger.info(f"Created project directory: {project_dir}")
 
-        # Copy SDK runtime files first
-        sdk_source_directory = (
-            pathlib.Path(__file__).resolve().parent
-        )  # This is .../mcp_modelservice_sdk/src/
-        _copy_sdk_runtime_files(project_dir, sdk_source_directory, packaging_logger)
-
+        # Copy the user's source code to the project directory
         original_source_rel_path_in_project = _copy_source_code(
             source_path_obj, project_dir, packaging_logger
         )
+
+        # Get tool documentation for README
         tool_docs = _get_tool_documentation_details(
             str(source_path_obj), target_function_names, packaging_logger
         )
+
+        # Using lightweight CLI-based packaging approach
+        packaging_logger.info("Using lightweight CLI-based packaging approach...")
         if not tool_docs and target_function_names:
             packaging_logger.warning(
                 f"Specified functions {target_function_names} not found for documentation. README tool list may be incomplete."
@@ -108,32 +129,38 @@ def build_mcp_package(
                 "No functions found or specified for documentation in README."
             )
 
-        main_py_content = _generate_main_py_content(
-            original_source_path_in_package=original_source_rel_path_in_project,
-            target_function_names=target_function_names,
+        # Generate start.sh script that uses the CLI
+        start_sh_content = _generate_start_sh_content(
+            source_path=original_source_rel_path_in_project,
             mcp_server_name=mcp_server_name,
             mcp_server_root_path=mcp_server_root_path,
             mcp_service_base_path=mcp_service_base_path,
             log_level=log_level,
-            cors_enabled=cors_enabled,
-            cors_allow_origins=cors_allow_origins,
             effective_host=effective_host,
             effective_port=effective_port,
+            cors_enabled=cors_enabled,
+            cors_allow_origins=cors_allow_origins,
+            target_function_names=target_function_names,
             reload_dev_mode=reload_dev_mode,
             workers_uvicorn=workers_uvicorn,
         )
-        main_py_file = project_dir / "main.py"
-        with open(main_py_file, "w", encoding="utf-8") as f:
-            f.write(main_py_content)
-        packaging_logger.info(f"Generated {main_py_file}")
 
-        start_sh_content = _generate_start_sh_content(main_script_name="main.py")
+        # Create a requirements.txt file for user dependencies if needed
+        # This is a placeholder - in a real implementation, you might want to
+        # analyze the user's code to determine dependencies
+        requirements_file = project_dir / "requirements.txt"
+        with open(requirements_file, "w", encoding="utf-8") as f:
+            f.write("# Add your dependencies here\n")
+        packaging_logger.info(f"Generated {requirements_file}")
+
+        # Write the start.sh file
         start_sh_file = project_dir / "start.sh"
         with open(start_sh_file, "w", encoding="utf-8", newline="\n") as f:
             f.write(start_sh_content)
         start_sh_file.chmod(start_sh_file.stat().st_mode | 0o111)
         packaging_logger.info(f"Generated {start_sh_file} and made it executable.")
 
+        # Generate README.md (for both modes)
         readme_md_content = _generate_readme_md_content(
             package_name=package_name_from_cli,
             mcp_server_name=mcp_server_name,

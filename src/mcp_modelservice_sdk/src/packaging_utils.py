@@ -108,55 +108,87 @@ def _get_tool_documentation_details(
     return tool_details
 
 
-def _generate_main_py_content(
-    original_source_path_in_package: str,
-    target_function_names: Optional[List[str]],
+def _generate_start_sh_content(
+    source_path: str,
     mcp_server_name: str,
     mcp_server_root_path: str,
     mcp_service_base_path: str,
     log_level: str,
-    cors_enabled: bool,
-    cors_allow_origins: List[str],
     effective_host: str,
     effective_port: int,
+    cors_enabled: bool,
+    cors_allow_origins: Optional[List[str]],
+    target_function_names: Optional[List[str]],
     reload_dev_mode: bool,
     workers_uvicorn: Optional[int],
 ) -> str:
-    functions_list_str = "None"
-    if target_function_names:
-        formatted_functions = [
-            f"'{name.replace("'", "\\'")}'" for name in target_function_names
-        ]
-        functions_list_str = f"[{', '.join(formatted_functions)}]"
+    """
+    Generate a start.sh script that directly uses the CLI to run the service.
 
-    cors_origins_list_str = (
-        f"[{', '.join([f'{repr(origin)}' for origin in cors_allow_origins])}]"
+    This approach eliminates the need for generating Python files, making the package
+    simpler and more maintainable. The script installs the SDK package and any user
+    dependencies, then runs the CLI with the appropriate parameters.
+
+    Args:
+        source_path: Path to the user's source code within the package.
+        mcp_server_name: Name for the FastMCP server.
+        mcp_server_root_path: Root path for the MCP service in Starlette.
+        mcp_service_base_path: Base path for MCP protocol endpoints.
+        log_level: Logging level for the service.
+        effective_host: Host to configure in the packaged service.
+        effective_port: Port to configure in the packaged service.
+        cors_enabled: Whether to enable CORS middleware.
+        cors_allow_origins: List of origins to allow for CORS.
+        target_function_names: Optional list of specific function names to expose.
+        reload_dev_mode: Whether to enable auto-reload in the packaged service.
+        workers_uvicorn: Number of worker processes for uvicorn.
+
+    Returns:
+        The content of the start.sh script.
+    """
+    template_str = _read_template(
+        "start.sh.template"
+    )  # Using our lightweight template as the default
+
+    # Prepare CLI flags
+    cors_enabled_flag = "--cors-enabled" if cors_enabled else "--no-cors-enabled"
+
+    # Handle CORS origins
+    cors_origins_flag = ""
+    if cors_allow_origins and len(cors_allow_origins) > 0:
+        cors_origins_str = " ".join(
+            [f"--cors-allow-origins {origin}" for origin in cors_allow_origins]
+        )
+        cors_origins_flag = cors_origins_str
+
+    # Handle functions list
+    functions_flag = ""
+    if target_function_names and len(target_function_names) > 0:
+        functions_str = " ".join(
+            [f"--functions {func}" for func in target_function_names]
+        )
+        functions_flag = functions_str
+
+    # Handle reload flag
+    reload_flag = "--reload" if reload_dev_mode else ""
+
+    # Handle workers flag
+    workers_flag = f"--workers {workers_uvicorn}" if workers_uvicorn is not None else ""
+
+    return template_str.format(
+        source_path=source_path,
+        mcp_server_name=mcp_server_name,
+        mcp_server_root_path=mcp_server_root_path,
+        mcp_service_base_path=mcp_service_base_path,
+        log_level=log_level,
+        effective_host=effective_host,
+        effective_port=effective_port,
+        cors_enabled_flag=cors_enabled_flag,
+        cors_origins_flag=cors_origins_flag,
+        functions_flag=functions_flag,
+        reload_flag=reload_flag,
+        workers_flag=workers_flag,
     )
-
-    template_str = _read_template("main.py.template")
-
-    context: Dict[str, Any] = {
-        "original_source_path_in_package": original_source_path_in_package.replace(
-            "\\", "/"
-        ),  # Ensure forward slashes for paths in code
-        "functions_list_str": functions_list_str,
-        "mcp_server_name": mcp_server_name,
-        "mcp_server_root_path": mcp_server_root_path,
-        "mcp_service_base_path": mcp_service_base_path,
-        "log_level": log_level,
-        "cors_enabled": cors_enabled,
-        "cors_origins_list_str": cors_origins_list_str,
-        "effective_host": effective_host,
-        "effective_port": effective_port,
-        "reload_dev_mode": reload_dev_mode,
-        "workers_uvicorn": workers_uvicorn if workers_uvicorn is not None else "None",
-    }
-    return template_str.format(**context)
-
-
-def _generate_start_sh_content(main_script_name: str = "main.py") -> str:
-    template_str = _read_template("start.sh.template")
-    return template_str.format(main_script_name=main_script_name)
 
 
 def _generate_readme_md_content(
@@ -198,47 +230,6 @@ def _generate_readme_md_content(
         "tool_documentation_section": tool_documentation_section,
     }
     return template_str.format(**context)
-
-
-def _copy_sdk_runtime_files(
-    project_dir: pathlib.Path,
-    sdk_src_dir: pathlib.Path,  # Path to the SDK's own src directory (e.g., .../mcp_modelservice_sdk/src/)
-    logger_to_use: logging.Logger,
-) -> None:
-    """Copies essential SDK runtime files into the packaged project."""
-    runtime_dir_name = "mcp_sdk_runtime"
-    sdk_runtime_target_dir = project_dir / runtime_dir_name
-    sdk_runtime_target_dir.mkdir(parents=True, exist_ok=True)
-
-    # Create __init__.py to make it a package
-    (sdk_runtime_target_dir / "__init__.py").touch()
-
-    files_to_copy = {
-        "discovery.py": sdk_src_dir / "discovery.py",
-        "app_builder.py": sdk_src_dir / "app_builder.py",
-        "core.py": sdk_src_dir / "core.py",
-    }
-
-    for target_name, source_path in files_to_copy.items():
-        if source_path.exists():
-            try:
-                shutil.copy2(source_path, sdk_runtime_target_dir / target_name)
-                logger_to_use.info(
-                    f"Copied SDK runtime file {source_path.name} to {sdk_runtime_target_dir / target_name}"
-                )
-            except Exception as e:
-                logger_to_use.error(
-                    f"Failed to copy SDK runtime file {source_path.name}: {e}"
-                )
-                # This is a critical error for an independent package
-                raise TransformationError(
-                    f"Failed to copy essential SDK runtime file {source_path.name}: {e}"
-                )
-        else:
-            logger_to_use.error(f"SDK runtime source file not found: {source_path}")
-            raise TransformationError(
-                f"Essential SDK runtime source file not found: {source_path}. Package will not be independent."
-            )
 
 
 def _copy_source_code(

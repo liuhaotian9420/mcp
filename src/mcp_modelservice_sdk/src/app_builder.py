@@ -1,11 +1,14 @@
 """
-Module for building the MCP Starlette application.
+Module for building the MCP Starlette application with multi-mount architecture.
+Each Python file will be mounted as a separate FastMCP instance under a route
+derived from its directory structure.
 """
 
 import inspect
 import logging
+import os
 import pathlib
-from typing import Any, Callable, List, Optional  # Added Dict
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from starlette.applications import Starlette
 from starlette.routing import Mount
@@ -31,6 +34,31 @@ class TransformationError(Exception):
     pass
 
 
+def _get_route_from_path(file_path: pathlib.Path, base_dir: pathlib.Path) -> str:
+    """
+    Converts a file path to a route path based on its directory structure.
+
+    Args:
+        file_path: Path to the Python file.
+        base_dir: Base directory where all source files are located.
+
+    Returns:
+        A route path for the FastMCP instance derived from the file path.
+        Example: base_dir/subdir/module.py -> /subdir/module
+    """
+    # Handle special case for __init__.py files
+    if file_path.name == "__init__.py":
+        # For __init__.py, use the parent directory name instead
+        rel_path = file_path.parent.relative_to(base_dir)
+        return f"/{'/' if str(rel_path) != '.' else ''}{str(rel_path).replace(os.sep, '/')}"
+
+    # Regular Python files
+    rel_path = file_path.relative_to(base_dir)
+    # Remove .py extension and convert path separators to route segments
+    route_path = str(rel_path.with_suffix("")).replace(os.sep, "/")
+    return f"/{'/' if route_path != '.' else ''}{route_path}"
+
+
 def _validate_and_wrap_tool(
     mcp_instance: FastMCP,
     func: Callable[..., Any],
@@ -40,6 +68,12 @@ def _validate_and_wrap_tool(
     """
     Validates function signature and docstring, then wraps it as an MCP tool.
     Logs warnings for missing type hints or docstrings.
+
+    Args:
+        mcp_instance: The FastMCP instance to add the tool to.
+        func: The function to wrap as a tool.
+        func_name: The name of the function.
+        file_path: The path to the file containing the function.
     """
     if not inspect.getdoc(func):
         logger.warning(
@@ -95,31 +129,32 @@ def create_mcp_application(
     cors_allow_origins: Optional[List[str]] = None,
 ) -> Starlette:
     """
-    Creates a Starlette application with FastMCP tools generated from discovered functions.
+    Creates a Starlette application with multiple FastMCP instances based on directory structure.
+    Each Python file will be given its own FastMCP instance mounted at a path derived from its location.
 
     Args:
         source_path_str: Path to the Python file or directory containing functions.
         target_function_names: Optional list of function names to expose. If None, all are exposed.
-        mcp_server_name: Name for the FastMCP server.
-        mcp_server_root_path: Root path for mounting the MCP service in Starlette.
-        mcp_service_base_path: Base path for MCP protocol endpoints within the FastMCP app.
+        mcp_server_name: Base name for FastMCP servers (will be suffixed with file/dir name).
+        mcp_server_root_path: Root path prefix for all MCP services in Starlette.
+        mcp_service_base_path: Base path for MCP protocol endpoints within each FastMCP app.
         cors_enabled: Whether to enable CORS middleware.
         cors_allow_origins: List of origins to allow for CORS. Defaults to ["*"] if None.
 
     Returns:
-        A configured Starlette application.
+        A configured Starlette application with multiple mounted FastMCP instances.
 
     Raises:
         TransformationError: If no tools could be created or other critical errors occur.
     """
     # _setup_logging(log_level) # This will be called externally if needed
 
-    logger.info(f"Initializing {mcp_server_name}...")
+    logger.info(
+        f"Initializing multi-mount MCP application with base name {mcp_server_name}..."
+    )
     logger.info(f"Source path for tools: {source_path_str}")
     if target_function_names:
         logger.info(f"Target functions: {target_function_names}")
-
-    mcp_instance = FastMCP(name=mcp_server_name)
 
     try:
         py_files = discover_py_files(source_path_str)
@@ -132,6 +167,13 @@ def create_mcp_application(
         raise TransformationError(
             "No Python files found to process. Ensure the path is correct and contains Python files."
         )
+
+    # Get base directory for determining routes
+    source_path = pathlib.Path(source_path_str).resolve()
+    if source_path.is_file():
+        base_dir = source_path.parent
+    else:
+        base_dir = source_path
 
     functions_to_wrap = discover_functions(py_files, target_function_names)
 
@@ -146,23 +188,65 @@ def create_mcp_application(
         logger.error(message)
         raise TransformationError(message)
 
+    # Group functions by file path to create one FastMCP instance per file
+    functions_by_file: Dict[pathlib.Path, List[Tuple[Callable[..., Any], str]]] = {}
     for func, func_name, file_path in functions_to_wrap:
-        logger.info(f"Processing function '{func_name}' from {file_path}...")
-        _validate_and_wrap_tool(mcp_instance, func, func_name, file_path)
+        if file_path not in functions_by_file:
+            functions_by_file[file_path] = []
+        functions_by_file[file_path].append((func, func_name))
 
-    if not mcp_instance.tools:  # type: ignore[attr-defined]
-        logger.error(
-            "No tools were successfully created and registered with FastMCP instance."
+    # Store FastMCP instances and their route paths
+    mcp_instances: Dict[str, Tuple[FastMCP, pathlib.Path]] = {}
+
+    # Create a FastMCP instance for each file and register its tools
+    for file_path, funcs in functions_by_file.items():
+        # Generate a unique name for this FastMCP instance based on file path
+        relative_path = file_path.relative_to(base_dir)
+        file_specific_name = str(relative_path).replace(os.sep, "_").replace(".py", "")
+        instance_name = f"{mcp_server_name}_{file_specific_name}"
+
+        logger.info(f"Creating FastMCP instance '{instance_name}' for {file_path}")
+        mcp_instance: FastMCP = FastMCP(name=instance_name)
+
+        # Register all functions from this file as tools
+        for func, func_name in funcs:
+            logger.info(f"Processing function '{func_name}' from {file_path}...")
+            _validate_and_wrap_tool(mcp_instance, func, func_name, file_path)
+
+        # Only keep instances that have at least one tool
+        # Check if any tools were registered (implementation depends on FastMCP API)
+        has_tools = hasattr(mcp_instance, "_tools") and bool(
+            getattr(mcp_instance, "_tools", None)
         )
+        if not has_tools:
+            logger.warning(
+                f"No tools were successfully created and registered for {file_path}. Skipping."
+            )
+            continue
+
+        # Determine the route path for this FastMCP instance
+        route_path = _get_route_from_path(file_path, base_dir)
+
+        # Get number of tools registered (implementation depends on FastMCP API)
+        num_tools = (
+            len(getattr(mcp_instance, "_tools", []))
+            if hasattr(mcp_instance, "_tools")
+            else 0
+        )
+        logger.info(
+            f"Successfully created and registered {num_tools} MCP tool(s) for '{instance_name}' to be mounted at '{route_path}'"
+        )
+
+        # Store the instance with its route path
+        mcp_instances[route_path] = (mcp_instance, file_path)
+
+    if not mcp_instances:
+        logger.error("No FastMCP instances could be created with valid tools.")
         raise TransformationError(
-            "No tools were successfully created and registered. Check logs for function-specific errors."
+            "No FastMCP instances could be created with valid tools. Check logs for details."
         )
-    logger.info(
-        f"Successfully created and registered {len(mcp_instance.tools)} MCP tool(s)."
-    )  # type: ignore[attr-defined]
 
-    mcp_asgi_app = mcp_instance.http_app(path=mcp_service_base_path)
-
+    # Set up CORS middleware if enabled
     current_middleware = []
     if cors_enabled:
         effective_cors_origins = (
@@ -178,35 +262,60 @@ def create_mcp_application(
             )
         )
 
-    app_lifespan = None
-    if hasattr(mcp_asgi_app, "router") and hasattr(
-        mcp_asgi_app.router, "lifespan_context"
-    ):
-        app_lifespan = mcp_asgi_app.router.lifespan_context
-    elif hasattr(mcp_asgi_app, "lifespan"):
-        app_lifespan = mcp_asgi_app.lifespan  # type: ignore[attr-defined]
-    else:
-        logger.warning(
-            "Could not determine lifespan context for FastMCP ASGI app. Lifespan features may not work correctly."
-        )
+    # Create mount routes for each FastMCP instance
+    routes = []
+    for route_path, (mcp_instance, file_path) in mcp_instances.items():
+        # Create ASGI app from the FastMCP instance
+        mcp_asgi_app = mcp_instance.http_app(path=mcp_service_base_path)
 
+        # Full mount path combines the server root path with the route path derived from file location
+        # Ensure we don't have double slashes by handling the paths carefully
+        if mcp_server_root_path.endswith("/") and route_path.startswith("/"):
+            full_mount_path = f"{mcp_server_root_path[:-1]}{route_path}"
+        elif not (mcp_server_root_path.endswith("/") or route_path.startswith("/")):
+            full_mount_path = f"{mcp_server_root_path}/{route_path}"
+        else:
+            full_mount_path = f"{mcp_server_root_path}{route_path}"
+
+        logger.info(
+            f"Mounting FastMCP instance for {file_path} at '{full_mount_path}'."
+        )
+        routes.append(Mount(full_mount_path, app=mcp_asgi_app))
+
+    # Handle lifespans - use the first MCP instance's lifespan for simplicity
+    # A more advanced implementation could combine lifespans
+    app_lifespan = None
+    if routes:
+        example_asgi_app = routes[0].app  # First FastMCP ASGI app for lifespan
+        if hasattr(example_asgi_app, "router") and hasattr(
+            example_asgi_app.router, "lifespan_context"
+        ):
+            app_lifespan = example_asgi_app.router.lifespan_context
+        elif hasattr(example_asgi_app, "lifespan"):
+            app_lifespan = example_asgi_app.lifespan  # type: ignore[attr-defined]
+        else:
+            logger.warning(
+                "Could not determine lifespan context for FastMCP ASGI apps. Lifespan features may not work correctly."
+            )
+
+    # Create state for storing all FastMCP instances
     class AppState:
-        fastmcp_instance: FastMCP
+        fastmcp_instances: Dict[str, FastMCP]
 
     state = AppState()
-    state.fastmcp_instance = mcp_instance  # type: ignore
+    state.fastmcp_instances = {
+        route: instance for route, (instance, _) in mcp_instances.items()
+    }
 
+    # Create the Starlette application with all the mounts
     app = Starlette(
-        routes=[
-            Mount(mcp_server_root_path, app=mcp_asgi_app),
-        ],
+        routes=routes,
         lifespan=app_lifespan,
         middleware=current_middleware if current_middleware else None,
     )
-    app.state = state  # type: ignore[attr-defined]
+    app.state = state  # type: ignore[assignment]
 
     logger.info(
-        f"Starlette application created. MCP service '{mcp_server_name}' "
-        f"will be mounted at '{mcp_server_root_path}{mcp_service_base_path}'."
+        f"Starlette application created with {len(routes)} FastMCP instances mounted under '{mcp_server_root_path}'."
     )
     return app

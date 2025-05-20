@@ -1,0 +1,18 @@
+tests\test_core.py:18: error: Module "mcp_modelservice_sdk.src.core" has no
+attribute "discover_py_files"  [attr-defined]
+        from mcp_modelservice_sdk.src.core import (
+        ^
+tests\test_core.py:18: error: Module "mcp_modelservice_sdk.src.core" has no
+attribute "discover_functions"  [attr-defined]
+        from mcp_modelservice_sdk.src.core import (
+        ^
+tests\test_core.py:18: error: Module "mcp_modelservice_sdk.src.core" has no
+attribute "_validate_and_wrap_tool"  [attr-defined]
+        from mcp_modelservice_sdk.src.core import (
+        ^
+tests\test_core.py:18: error: Module "mcp_modelservice_sdk.src.core" has no
+attribute "package_mcp_application"; maybe "create_mcp_application"? 
+[attr-defined]
+        from mcp_modelservice_sdk.src.core import (
+        ^
+Found 4 errors in 1 file (checked 13 source files)

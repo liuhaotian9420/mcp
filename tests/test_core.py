@@ -15,14 +15,11 @@ import sys
 # sys.path.append(os.path.dirname(SCRIPT_DIR))
 
 try:
-    from mcp_modelservice_sdk.src.core import (
-        discover_py_files,
-        discover_functions,
-        _validate_and_wrap_tool,  # For more direct testing if needed, though typically tested via create_mcp_application
-        create_mcp_application,
-        TransformationError,
-        package_mcp_application,  # Added import
-    )
+    from mcp_modelservice_sdk.src.discovery import discover_py_files, discover_functions
+    from mcp_modelservice_sdk.src.app_builder import (_validate_and_wrap_tool, 
+                                                     create_mcp_application,
+                                                     TransformationError)
+    from mcp_modelservice_sdk.src.packaging import build_mcp_package as package_mcp_application  # Using build_mcp_package as replacement
     from fastmcp import FastMCP
 except ImportError:
     # This might happen if the package isn't installed correctly or PYTHONPATH isn't set

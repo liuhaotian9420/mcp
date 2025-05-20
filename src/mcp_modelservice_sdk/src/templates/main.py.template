@@ -1,8 +1,21 @@
-# Generated main.py for MCP Model Service
+# Generated main.py for MCP Model Service with multi-mount architecture
+#
+# This main.py implements a multi-mount architecture where each Python file in the source
+# directory gets its own FastMCP instance mounted at a path derived from its location.
+# For example:
+#   - user_code/moduleA.py -> mounted at /moduleA
+#   - user_code/subsystemB/moduleC.py -> mounted at /subsystemB/moduleC
+#   - user_code/subsystemB/__init__.py -> mounted at /subsystemB
+#
+# This allows for a more intuitive organization of MCP tools based on the
+# directory structure of the source code.
+
 import uvicorn
 import logging
 import sys
 import pathlib
+import os
+from typing import Dict, List, Optional, Tuple, Any
 
 # SDK modules are now bundled within the 'mcp_sdk_runtime' directory
 # The SDK_CORE_MODULE_PATH constant is no longer needed for these imports.

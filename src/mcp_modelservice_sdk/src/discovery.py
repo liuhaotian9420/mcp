@@ -1,5 +1,7 @@
 """
-Module for discovering Python files and functions.
+Module for discovering Python files and functions with enhanced support for directory-based routing.
+This module provides functionality to discover Python files from a source path and extract
+functions from those files, preserving file path information for routing purposes.
 """
 
 import importlib.util
@@ -20,17 +22,20 @@ def discover_py_files(source_path_str: str) -> List[pathlib.Path]:
     """
     Discovers Python files from a given file or directory path.
 
+    This function scans a file or directory path and identifies all Python files.
+    It preserves the full path information which is essential for directory-based routing.
+
     Args:
         source_path_str: The path to a Python file or a directory.
 
     Returns:
-        A list of pathlib.Path objects for discovered .py files.
+        A list of pathlib.Path objects for discovered .py files with full path information.
 
     Raises:
         FileNotFoundError: If the source_path_str does not exist.
         ValueError: If source_path_str is not a file or directory.
     """
-    source_path = pathlib.Path(source_path_str)
+    source_path = pathlib.Path(source_path_str).resolve()  # Get absolute path
     if not source_path.exists():
         raise FileNotFoundError(f"Source path does not exist: {source_path_str}")
 
@@ -38,20 +43,29 @@ def discover_py_files(source_path_str: str) -> List[pathlib.Path]:
     if source_path.is_file():
         if source_path.suffix == ValidFileTypes.PYTHON.value:
             py_files.append(source_path)
+            logger.info(f"Discovered Python file: {source_path}")
         else:
-            logger.warning(
-                f"Source file is not a Python file, skipping: {source_path_str}"
-            )
+            logger.warning(f"Source file is not a Python file, skipping: {source_path}")
     elif source_path.is_dir():
+        logger.info(f"Scanning directory for Python files: {source_path}")
         for root, _, files in os.walk(source_path):
+            root_path = pathlib.Path(root)
             for file_name in files:  # Renamed 'file' to 'file_name' to avoid conflict
                 if file_name.endswith(ValidFileTypes.PYTHON.value):
-                    py_files.append(pathlib.Path(root) / file_name)
+                    file_path = root_path / file_name
+                    py_files.append(file_path)
+                    # Log the relative path for better debugging
+                    rel_path = file_path.relative_to(source_path)
+                    logger.debug(
+                        f"Discovered Python file: {rel_path} (full path: {file_path})"
+                    )
     else:
-        raise ValueError(f"Source path is not a file or directory: {source_path_str}")
+        raise ValueError(f"Source path is not a file or directory: {source_path}")
 
     if not py_files:
-        logger.warning(f"No Python files found in: {source_path_str}")
+        logger.warning(f"No Python files found in: {source_path}")
+    else:
+        logger.info(f"Discovered {len(py_files)} Python file(s) from {source_path}")
     return py_files
 
 
@@ -91,6 +105,9 @@ def discover_functions(
     """
     Discovers functions from a list of Python files.
 
+    This function loads each Python file as a module and discovers functions within it.
+    It preserves the file path information which is essential for directory-based routing.
+
     Args:
         file_paths: A list of paths to Python files.
         target_function_names: An optional list of specific function names to discover.
@@ -98,20 +115,43 @@ def discover_functions(
 
     Returns:
         A list of tuples, each containing (function_object, function_name, file_path).
+        The file_path is the full path to the Python file containing the function.
     """
     discovered_functions: List[Tuple[Callable[..., Any], str, pathlib.Path]] = []
     function_name_set = set(target_function_names) if target_function_names else None
     import inspect  # Moved import here as it's only used in this function
 
-    for file_path in file_paths:
+    # Sort file paths to ensure consistent processing order
+    sorted_file_paths = sorted(file_paths, key=lambda p: str(p))
+
+    for file_path in sorted_file_paths:
+        logger.info(f"Discovering functions in: {file_path}")
         module = _load_module_from_path(file_path)
         if module:
+            module_functions = []
             for name, member in inspect.getmembers(module):
+                # Only include functions defined in this module (not imported)
                 if inspect.isfunction(member) and member.__module__ == module.__name__:
+                    # Skip private functions (starting with underscore)
+                    if name.startswith("_") and not (
+                        name.startswith("__") and name.endswith("__")
+                    ):
+                        logger.debug(
+                            f"Skipping private function: {name} in {file_path}"
+                        )
+                        continue
+
                     if function_name_set is None or name in function_name_set:
-                        discovered_functions.append((member, name, file_path))
+                        module_functions.append((member, name))
                         if function_name_set and name in function_name_set:
                             function_name_set.remove(name)
+
+            if module_functions:
+                logger.info(f"Found {len(module_functions)} function(s) in {file_path}")
+                for func, name in module_functions:
+                    discovered_functions.append((func, name, file_path))
+            else:
+                logger.warning(f"No suitable functions found in {file_path}")
 
     if function_name_set and len(function_name_set) > 0:
         logger.warning(

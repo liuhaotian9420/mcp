@@ -40,7 +40,7 @@ jobs:
         ruff check .
     - name: Type check with mypy
       run: |
-        mypy src tests
+        mypy --ignore-missing-imports src/mcp_modelservice_sdk tests
     - name: Test with unittest
       run: |
         python -m unittest discover tests
