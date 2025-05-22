@@ -68,3 +68,6 @@ Thumbs.db
 
 # Notebook checkpoints
 .ipynb_checkpoints/
+
+# GitHub Actions
+.github/
