@@ -7,7 +7,7 @@ name = "mcp-modelservice-sdk"
 version = "0.1.6"
 description = "A CLI for the MCP Modelservice Example"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 dependencies = [
     "mcp[cli]>=1.3.0",
     "ruff>=0.9.10",
@@ -33,8 +33,28 @@ test = [
 ]
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
 explicit_package_bases = true
 namespace_packages = true
+
+[[tool.mypy.overrides]]
+module = "typer.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "mcp.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "fastapi_mcp.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "starlette.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "dotenv.*"
+ignore_missing_imports = true
