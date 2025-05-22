@@ -69,7 +69,8 @@ start_service() {{
         {cors_origins_flag} \
         {functions_flag} \
         {reload_flag} \
-        {workers_flag}
+        {workers_flag} \
+        {mode_flag}
 }}
 
 # Main execution

@@ -39,6 +39,7 @@ def build_mcp_package(
     reload_dev_mode: bool,
     workers_uvicorn: Optional[int],
     cli_logger: logging.Logger,  # Logger to use for packaging messages
+    mode: str,
 ):
     print("DEBUG_PACKAGING: Entered build_mcp_package function.")
     # Use the provided logger for packaging messages
@@ -126,6 +127,7 @@ def build_mcp_package(
             target_function_names=target_function_names,
             reload_dev_mode=reload_dev_mode,
             workers_uvicorn=workers_uvicorn,
+            mode=mode,
         )
 
         # Create a requirements.txt file for user dependencies if needed

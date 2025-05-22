@@ -48,6 +48,18 @@ This allows you to:
 2. Run the MCP server with your own Python file containing functions
 3. Access the MCP tools through the web interface at http://localhost:8080/mcp-server/mcp
 
+## Use Cases
+
+The `mcp-modelservice-sdk` is particularly well-suited for the following scenarios:
+
+*   **Rapid Prototyping of MCP Services**: Quickly turn a directory of Python scripts or a single utility file into an MCP-accessible service without writing extensive boilerplate for a web framework.
+*   **Microservice Architectures**: Structure your project such that each Python file (or subdirectory) becomes a distinct microservice, each with its own set of MCP tools, automatically routed based on the file system structure.
+*   **Exposing Python Libraries as Network APIs**: Make existing Python libraries or collections of utility functions available over the network as MCP tools with minimal refactoring.
+*   **Internal Tooling and Automation**: Create and deploy internal tools and automation scripts as MCP services for easy access and integration within an organization.
+*   **Simplified Deployment of Python Functions**: Package Python functions into runnable services (via the `package` command) that can be deployed in environments supporting Python and the `mcp-modelservice-sdk`.
+*   **Developer-Friendly API Creation**: Enable developers to focus on writing Python functions, with the SDK handling the complexities of exposing them as MCP services and packaging.
+*   **Directory-Driven Tool Organization**: Leverage the automatic routing based on filesystem structure to intuitively organize and expose related sets of tools.
+
 ## Prerequisites
 
 - Python 3.8+

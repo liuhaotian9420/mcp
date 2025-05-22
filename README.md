@@ -50,6 +50,18 @@ uvx mcp-modelservice-sdk run --source-path your_tools.py --port 9000 --host 0.0.
 2. 使用包含函数的自己的 Python 文件运行 MCP 服务器
 3. 通过网页界面访问 MCP 工具：http://localhost:8080/mcp-server/mcp
 
+## 使用场景
+
+`mcp-modelservice-sdk` 特别适用于以下场景：
+
+*   **快速原型化 MCP 服务**：无需为Web框架编写大量样板代码，即可快速将 Python 脚本目录或单个实用工具文件转换为可通过 MCP 访问的服务。
+*   **微服务架构**：您可以将项目结构化，使每个 Python 文件（或子目录）成为一个独特的微服务，每个微服务都拥有一套自己的 MCP 工具，并根据文件系统结构自动路由。
+*   **将 Python 库暴露为网络 API**：以最少的重构工作，将现有的 Python 库或实用函数集合作为 MCP 工具通过网络提供。
+*   **内部工具和自动化**：创建和部署内部工具及自动化脚本作为 MCP 服务，以便在组织内部轻松访问和集成。
+*   **简化 Python 函数的部署**：将 Python 函数打包成可运行的服务（通过 `package` 命令），这些服务可以部署在支持 Python 和 `mcp-modelservice-sdk` 的环境中。
+*   **开发者友好的 API 创建**：使开发人员能够专注于编写 Python 函数，由 SDK 处理将其公开为 MCP 服务和打包的复杂性。
+*   **目录驱动的工具组织**：利用基于文件系统结构的自动路由功能，直观地组织和暴露相关工具集。
+
 ## 先决条件
 
 - Python 3.8+

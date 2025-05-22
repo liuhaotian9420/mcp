@@ -108,7 +108,11 @@ TransformationError = core.TransformationError
 _setup_logging = core._setup_logging
 
 app = typer.Typer(
-    help="MCP Modelservice SDK CLI: Create, run, and package MCP services from your Python code using a lightweight CLI-based approach.",
+    help="""MCP Modelservice SDK CLI: Create, run, and package MCP services from your Python code using a lightweight CLI-based approach.
+    The CLI supports two modes (via the '--mode' flag):
+    - 'composed': Default mode. Mounts each Python file as a separate FastMCP instance under a route derived from its directory structure.
+    - 'routed': Mounts all Python files under a single FastMCP instance at a single route.
+    """,
     add_completion=False,
 )
 
@@ -140,6 +144,13 @@ class CommonOptions:
                 rich_help_panel="Service Configuration",
             ),
         ] = "info",
+        mode: Annotated[
+            str,
+            typer.Option(
+                help="Mode for the MCP application. Currently supports 'composed' and 'routed'.",
+                rich_help_panel="Service Configuration",
+            ),
+        ] = "composed",
         functions: Annotated[
             Optional[List[str]],
             typer.Option(
@@ -192,7 +203,7 @@ class CommonOptions:
         self.mcp_base = mcp_base
         self.cors_enabled = cors_enabled
         self.cors_allow_origins = cors_allow_origins
-
+        self.mode = mode
 
 def _validate_source_path(source_path: Optional[str], logger: logging.Logger) -> bool:
     """
@@ -269,14 +280,6 @@ def _process_optional_list_str_option(
 @app.command()
 def run(
     ctx: typer.Context,
-    source_path: Annotated[
-        Optional[str],
-        typer.Option(
-            "--source-path",
-            help="Path to the Python file or directory containing functions.",
-            rich_help_panel="Source Configuration",
-        ),
-    ] = None,  # To access common options
     host: Annotated[
         str,
         typer.Option(
@@ -316,14 +319,16 @@ def run(
         ctx.obj
     )  # CommonOptions object is stored in ctx.obj by the callback
 
-    _setup_logging(common_opts.log_level)  # Setup SDK logging
-    cli_logger.setLevel(common_opts.log_level.upper())  # Also set CLI logger level
+    # Logging setup is now handled in the main callback
+    # _setup_logging(common_opts.log_level)
+    # cli_logger.setLevel(common_opts.log_level.upper())
 
     if common_opts.source_path is None:
-        cli_logger.error("Source path is required")
+        cli_logger.error("Source path is required but was not configured.")
         sys.exit(1)
 
-    cli_logger.info(f"Attempting to run service from source: {common_opts.source_path}")
+    # Log already done in main callback with resolved path
+    # cli_logger.info(f"Attempting to run service from source: {common_opts.source_path}")
 
     # Validate the source path before proceeding
     if not _validate_source_path(common_opts.source_path, cli_logger):
@@ -332,21 +337,15 @@ def run(
         )
         sys.exit(1)
 
-    processed_functions = _process_optional_list_str_option(common_opts.functions)
-    if processed_functions:
-        cli_logger.info(f"Targeting specific functions: {processed_functions}")
+    # processed_functions is now directly from common_opts, prepared by main callback
+    if common_opts.functions: # common_opts.functions is already the processed list or None
+        cli_logger.info(f"Targeting specific functions: {common_opts.functions}")
 
-    processed_cors_origins = _process_optional_list_str_option(
-        common_opts.cors_allow_origins
-    )
-    if (
-        processed_cors_origins is None
-    ):  # Typer default for list is [], we want ["*"] if user provides nothing
-        processed_cors_origins = ["*"]
-
+    # processed_cors_origins is now directly from common_opts, prepared by main callback
+    # Default for cors_allow_origins (e.g. ["*"]) is also handled in main callback.
     if common_opts.cors_enabled:
         cli_logger.info(
-            f"CORS will be enabled. Allowing origins: {processed_cors_origins}"
+            f"CORS will be enabled. Allowing origins: {common_opts.cors_allow_origins}"
         )
     else:
         cli_logger.info("CORS will be disabled.")
@@ -384,16 +383,17 @@ def run(
 
         # Create the MCP application
         mcp_app = create_mcp_application(
-            source_path_str=common_opts.source_path,  # At this point we've verified source_path is not None
-            target_function_names=processed_functions,
+            source_path_str=common_opts.source_path,
+            target_function_names=common_opts.functions, # Use directly from common_opts
             mcp_server_name=common_opts.mcp_name,
             mcp_server_root_path=common_opts.server_root,
             mcp_service_base_path=common_opts.mcp_base,
             cors_enabled=common_opts.cors_enabled,
-            cors_allow_origins=processed_cors_origins,
+            cors_allow_origins=common_opts.cors_allow_origins, # Use directly from common_opts
+            mode=common_opts.mode.lower(),
         )
 
-        if mcp_app is None and not has_fastmcp:
+        if mcp_app is None and not has_fastmcp: # Redundant check for has_fastmcp as it exits earlier if not found
             cli_logger.error(
                 "Failed to create MCP application: FastMCP is not available"
             )
@@ -502,11 +502,12 @@ def package(
         ctx.obj
     )  # CommonOptions object is stored in ctx.obj by the callback
 
-    _setup_logging(common_opts.log_level)  # Setup SDK logging
-    cli_logger.setLevel(common_opts.log_level.upper())  # Also set CLI logger level
+    # Logging setup is now handled in the main callback
+    # _setup_logging(common_opts.log_level)
+    # cli_logger.setLevel(common_opts.log_level.upper())
 
     if common_opts.source_path is None:
-        cli_logger.error("Source path is required")
+        cli_logger.error("Source path is required for packaging.")
         sys.exit(1)
 
     if not package_name or not package_name.strip():
@@ -537,26 +538,14 @@ def package(
         f"Packaging MCP service using CLI-based approach into '{package_name}.zip' from source: {common_opts.source_path}"
     )
 
-    # Validate the source path before proceeding
-    if not _validate_source_path(common_opts.source_path, cli_logger):
-        cli_logger.error(
-            "Source path validation failed. Please check the path and ensure it contains valid Python files."
-        )
-        sys.exit(1)
+    # processed_functions is now directly from common_opts, prepared by main callback
+    if common_opts.functions:
+        cli_logger.info(f"Targeting specific functions for package: {common_opts.functions}")
 
-    processed_functions = _process_optional_list_str_option(common_opts.functions)
-    if processed_functions:
-        cli_logger.info(f"Targeting specific functions: {processed_functions}")
-
-    processed_cors_origins = _process_optional_list_str_option(
-        common_opts.cors_allow_origins
-    )
-    if processed_cors_origins is None:
-        processed_cors_origins = ["*"]
-
+    # processed_cors_origins and enabled status are now directly from common_opts
     if common_opts.cors_enabled:
         cli_logger.info(
-            f"CORS will be enabled in package. Allowing origins: {processed_cors_origins}"
+            f"CORS will be enabled in package. Allowing origins: {common_opts.cors_allow_origins}"
         )
     else:
         cli_logger.info("CORS will be disabled in package.")
@@ -564,19 +553,20 @@ def package(
     try:
         build_mcp_package(
             package_name_from_cli=package_name,
-            source_path_str=common_opts.source_path,
-            target_function_names=processed_functions,
+            source_path_str=common_opts.source_path, # Ensure this is not None
+            target_function_names=common_opts.functions, # Use directly
             mcp_server_name=common_opts.mcp_name,
             mcp_server_root_path=common_opts.server_root,
             mcp_service_base_path=common_opts.mcp_base,
-            log_level=common_opts.log_level,  # Used for logging during packaging
+            log_level=common_opts.log_level,
             cors_enabled=common_opts.cors_enabled,
-            cors_allow_origins=processed_cors_origins,
-            effective_host=effective_package_host,  # Use package specific host/port
+            cors_allow_origins=common_opts.cors_allow_origins if common_opts.cors_allow_origins is not None else [], # Ensure list is passed
+            effective_host=effective_package_host,
             effective_port=effective_package_port,
             reload_dev_mode=package_reload,
             workers_uvicorn=package_workers,
             cli_logger=cli_logger,  # Pass the CLI logger for build_mcp_package to use
+            mode=common_opts.mode.lower(),
         )
         cli_logger.info(
             f"Successfully packaged MCP service into '{package_name}.zip' using the CLI-based approach."
@@ -632,13 +622,13 @@ def package(
 def main(
     ctx: typer.Context,
     source_path: Annotated[
-        Optional[str],
+        Optional[str], # Retained Optional for flexibility, though default is "./"
         typer.Option(
-            "--source-path",  # Make sure the option name is explicitly defined
+            "--source-path",
             help="Path to the Python file or directory containing functions.",
             rich_help_panel="Source Configuration",
         ),
-    ] = "./",  # Default source path
+    ] = "./",
     log_level: Annotated[
         str,
         typer.Option(
@@ -684,10 +674,17 @@ def main(
     cors_allow_origins: Annotated[
         Optional[List[str]],
         typer.Option(
-            help='Comma-separated list of allowed CORS origins (e.g. "*", "http://localhost:3000"). Default allows all.',
+            help='Comma-separated list of allowed CORS origins (e.g. "*", "http://localhost:3000"). Default allows all if CORS is enabled.',
             rich_help_panel="Network Configuration",
         ),
-    ] = None,  # Default is None, handled in commands
+    ] = None,
+    mode: Annotated[
+        str,
+        typer.Option(
+            help="Mode for the MCP application. Currently supports 'composed' and 'routes'.",
+            rich_help_panel="Service Configuration",
+        ),
+    ] = "composed",
 ):
     """
     MCP Modelservice SDK CLI
@@ -697,28 +694,45 @@ def main(
     by generating only a start.sh script that directly uses the CLI to run the service, eliminating
     the need for generating additional Python files.
     """
-    # Get common options from context
-    common_opts = ctx.obj or CommonOptions(
-        source_path="./",  # Use ./ as fallback if not specified
-        log_level="info",
-        functions=None,
-        mcp_name="MCPModelService",
-        server_root="/mcp-server",
-        mcp_base="/mcp",
-        cors_enabled=True,
-        cors_allow_origins=None,
+    processed_functions = _process_optional_list_str_option(functions)
+    processed_cors_origins = _process_optional_list_str_option(cors_allow_origins)
+
+    # If CORS is enabled and no specific origins are provided by the user, default to allowing all.
+    if cors_enabled and processed_cors_origins is None:
+        processed_cors_origins = ["*"]
+
+    # Create CommonOptions instance with values from callback parameters
+    common_obj = CommonOptions(
+        source_path=source_path,
+        log_level=log_level,
+        functions=processed_functions,
+        mcp_name=mcp_name,
+        server_root=server_root,
+        mcp_base=mcp_base,
+        cors_enabled=cors_enabled,
+        cors_allow_origins=processed_cors_origins,
+        mode=mode,
     )
+    ctx.obj = common_obj # Store in context for subcommands
 
-    # Override source_path if provided directly to the command
-    if source_path is not None:
-        common_opts.source_path = source_path
-        cli_logger.info(f"Using source path from command parameter: {source_path}")
+    # Setup logging using the determined log level from common options
+    # _validate_log_level is used by uvicorn.run, but _setup_logging handles SDK's internal logging.
+    # We should also ensure cli_logger itself uses the correct level.
+    normalized_log_level = _validate_log_level(common_obj.log_level, cli_logger) # Validate for safety
+    _setup_logging(normalized_log_level) # Setup SDK logging
+    cli_logger.setLevel(normalized_log_level.upper()) # Set CLI logger level
 
-    # Store common options in context to be accessed by subcommands
-    ctx.obj = common_opts
-    # Initial logging setup can also be done here if desired globally for all commands
-    # _setup_logging(log_level)
-    # cli_logger.setLevel(log_level.upper())
+    # Log the effective source path that will be used
+    if common_obj.source_path:
+        try:
+            # Attempt to resolve to an absolute path for clearer logging
+            resolved_path = pathlib.Path(common_obj.source_path).resolve()
+            cli_logger.info(f"Effective source path: {resolved_path}")
+        except Exception: # Fallback if path resolution fails for some reason
+            cli_logger.info(f"Effective source path: {common_obj.source_path}")
+    else:
+        # This case should not be reached if source_path has a default like "./"
+        cli_logger.warning("Source path is not configured. Defaulting may occur or errors might follow.")
 
 
 if __name__ == "__main__":

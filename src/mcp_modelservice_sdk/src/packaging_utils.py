@@ -121,6 +121,7 @@ def _generate_start_sh_content(
     target_function_names: Optional[List[str]],
     reload_dev_mode: bool,
     workers_uvicorn: Optional[int],
+    mode: str,
 ) -> str:
     """
     Generate a start.sh script that directly uses the CLI to run the service.
@@ -174,6 +175,9 @@ def _generate_start_sh_content(
 
     # Handle workers flag
     workers_flag = f"--workers {workers_uvicorn}" if workers_uvicorn is not None else ""
+    
+    # Handle mode flag
+    mode_flag = f"--mode {mode}" if mode is not None else ""
 
     return template_str.format(
         source_path=source_path,
@@ -188,6 +192,7 @@ def _generate_start_sh_content(
         functions_flag=functions_flag,
         reload_flag=reload_flag,
         workers_flag=workers_flag,
+        mode_flag=mode_flag,
     )
 
 
