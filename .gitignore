@@ -1,16 +1,70 @@
 # Python-generated files
 __pycache__/
-*.py[oc]
+*.py[cod]
+*.pyo
+*.pyc
+*.pyd
+*.pyi  # Interface stub files
+.Python
 build/
 dist/
 wheels/
-*.egg-info
+*.egg-info/
 
 # Virtual environments
-.venv
+.venv/
+env/
+venv/
+ENV/
+
+# IDE / Editor specific
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sublime-workspace
+.project
+.settings/
 
 # Ruff cache
 .ruff_cache/
 
+# mypy cache
+.mypy_cache/
+
+# pytest cache
+.pytest_cache/
+
+# Coverage reports
+.coverage
+coverage.xml
+htmlcov/
+
+# Build artifacts
+*.whl
+*.tar.gz
+*.zip
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
 # Credentials files
 .pypirc
+
+# Log files
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+
+# Local configuration
+.env
+.env.*.local
+
+# Notebook checkpoints
+.ipynb_checkpoints/
