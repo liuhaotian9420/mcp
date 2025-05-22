@@ -24,12 +24,12 @@ install_dependencies() {{
     check_command "$PYTHON_CMD"
     check_command "$PIP_CMD"
     
-    echo "[INFO] Upgrading pip..."
-    if $PIP_CMD install --upgrade pip &> /dev/null; then
-      echo "[INFO] pip upgraded."
-    else
-      echo "[WARNING] Failed to upgrade pip. Continuing with current version."
-    fi
+    # echo "[INFO] Upgrading pip..."
+    # if $PIP_CMD install --upgrade pip &> /dev/null; then
+    #   echo "[INFO] pip upgraded."
+    # else
+    #   echo "[WARNING] Failed to upgrade pip. Continuing with current version."
+    # fi
     
     # Install mcp_modelservice_sdk which contains our CLI
     echo "[INFO] Installing mcp_modelservice_sdk and its dependencies..."

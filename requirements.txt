@@ -27,6 +27,7 @@ fastapi==0.115.12
     #   fastapi-mcp
 fastapi-mcp==0.3.4
     # via mcp-modelservice-sdk (pyproject.toml)
+fastmcp==2.4.0
 h11==0.16.0
     # via
     #   httpcore

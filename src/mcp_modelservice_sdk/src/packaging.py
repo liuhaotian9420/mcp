@@ -174,6 +174,8 @@ def build_mcp_package(
             root_dir=base_output_dir,
             base_dir="project",
         )
+        # remove the project folder once zipping is done
+        shutil.rmtree(str(pathlib.Path.cwd() / package_name_from_cli))
         packaging_logger.info(f"Successfully created package: {zip_file_path}")
         packaging_logger.info(
             f"Build directory: {base_output_dir}. This contains the 'project' folder."

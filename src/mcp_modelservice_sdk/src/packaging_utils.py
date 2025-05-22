@@ -243,7 +243,7 @@ def _copy_source_code(
     logger_to_use: logging.Logger,
 ) -> str:
     user_src_dir_name = "user_src"
-    user_src_target_dir = project_dir / user_src_dir_name
+    user_src_target_dir = project_dir
     try:
         if not user_src_target_dir.exists():
             user_src_target_dir.mkdir(parents=True, exist_ok=True)
