@@ -14,6 +14,9 @@ import os
 # SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 # sys.path.append(os.path.dirname(SCRIPT_DIR))
 
+# Mock FastMCP to allow tests to run even when fastmcp isn't installed
+FastMCP = MagicMock()
+
 try:
     from mcp_modelservice_sdk.src.app_builder import (
         _validate_and_wrap_tool,
@@ -23,7 +26,11 @@ try:
     from mcp_modelservice_sdk.src.packaging import (
         build_mcp_package as package_mcp_application,
     )  # Using build_mcp_package as replacement
-    from fastmcp import FastMCP
+    try:
+        from fastmcp import FastMCP
+    except ImportError:
+        # Mock FastMCP for testing when not installed
+        print("Using mock FastMCP for testing")
 except ImportError:
     # This might happen if the package isn't installed correctly or PYTHONPATH isn't set
     # For CI/CD or local testing, ensure your package structure allows this import
