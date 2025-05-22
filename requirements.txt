@@ -53,9 +53,9 @@ mcp==1.9.0
     #   fastapi-mcp
 mdurl==0.1.2
     # via markdown-it-py
-mypy==1.15.0
-    # via mcp-modelservice-sdk (pyproject.toml)
-mypy-extensions==1.1.0
+# mypy==1.15.0
+#     # via mcp-modelservice-sdk (pyproject.toml)
+# mypy-extensions==1.1.0
     # via mypy
 pydantic==2.11.4
     # via
@@ -87,7 +87,7 @@ rich==14.0.0
     # via
     #   fastapi-mcp
     #   typer
-ruff==0.11.10
+# ruff==0.11.10
     # via mcp-modelservice-sdk (pyproject.toml)
 shellingham==1.5.4
     # via typer
