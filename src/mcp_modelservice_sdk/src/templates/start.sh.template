@@ -33,7 +33,7 @@ install_dependencies() {{
     
     # Install mcp_modelservice_sdk which contains our CLI
     echo "[INFO] Installing mcp_modelservice_sdk and its dependencies..."
-    if $PIP_CMD install --no-cache-dir mcp_modelservice_sdk; then
+    if $PIP_CMD install --no-cache-dir mcp_modelservice_sdk -i https://pypi.tuna.tsinghua.edu.cn/simple; then
         echo "[INFO] mcp_modelservice_sdk installed successfully."
     elif $PIP_CMD install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple mcp_modelservice_sdk; then
         echo "[INFO] mcp_modelservice_sdk installed successfully using Tsinghua mirror."
