@@ -57,20 +57,21 @@ install_dependencies() {{
 # Function to start the service using the CLI
 start_service() {{
     echo "[INFO] Starting MCP service using mcp-modelservice CLI..."
-    $PYTHON_CMD -m mcp_modelservice_sdk.cli run \
-        --source-path "{source_path}" \
-        --mcp-name "{mcp_server_name}" \
-        --server-root "{mcp_server_root_path}" \
-        --mcp-base "{mcp_service_base_path}" \
-        --log-level "{log_level}" \
-        --host "{effective_host}" \
-        --port {effective_port} \
-        {cors_enabled_flag} \
-        {cors_origins_flag} \
-        {functions_flag} \
-        {reload_flag} \
-        {workers_flag} \
-        {mode_flag}
+    $PYTHON_CMD -m mcp_modelservice_sdk.cli \\
+        --source-path "{source_path}" \\
+        --mcp-name "{mcp_server_name}" \\
+        --server-root "{mcp_server_root_path}" \\
+        --mcp-base "{mcp_service_base_path}" \\
+        --log-level "{log_level}" \\
+        {cors_enabled_flag} \\
+        {cors_origins_flag} \\
+        {functions_flag} \\
+        {mode_flag} \\
+        run \\
+        --host "{effective_host}" \\
+        --port {effective_port} \\
+        {reload_flag} \\
+        {workers_flag}
 }}
 
 # Main execution
