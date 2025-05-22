@@ -5,6 +5,8 @@ import tempfile
 import logging
 import shutil  # For cleaning up temp directories
 import os
+import sys
+from typing import Any
 
 # Ensure the src directory is discoverable for imports if tests are run from root
 
@@ -14,9 +16,7 @@ import os
 # SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 # sys.path.append(os.path.dirname(SCRIPT_DIR))
 
-# Mock FastMCP to allow tests to run even when fastmcp isn't installed
-FastMCP = MagicMock()
-
+# First import our package modules
 try:
     from mcp_modelservice_sdk.src.app_builder import (
         _validate_and_wrap_tool,
@@ -26,11 +26,6 @@ try:
     from mcp_modelservice_sdk.src.packaging import (
         build_mcp_package as package_mcp_application,
     )  # Using build_mcp_package as replacement
-    try:
-        from fastmcp import FastMCP
-    except ImportError:
-        # Mock FastMCP for testing when not installed
-        print("Using mock FastMCP for testing")
 except ImportError:
     # This might happen if the package isn't installed correctly or PYTHONPATH isn't set
     # For CI/CD or local testing, ensure your package structure allows this import
@@ -42,6 +37,35 @@ except ImportError:
     # Fallback for some structures, adjust as necessary
     # from src.mcp_modelservice_sdk.src.core import ...
     raise
+
+# Then handle FastMCP import separately
+# First determine if we're in a test environment
+in_test_mode = "unittest" in sys.modules or "pytest" in sys.modules
+ 
+# Create a variable for FastMCP
+FastMCP: Any
+
+# Try to import the real FastMCP
+try:
+    from fastmcp import FastMCP
+except ImportError:
+    # If import fails, create and use a mock instead
+    if in_test_mode:
+        print("Using mock FastMCP for testing")
+        mock_fastmcp = MagicMock()
+        mock_fastmcp.name = "MockFastMCP"
+        mock_fastmcp.tools = {}
+        # Create a mock tool decorator
+        def mock_tool(*args, **kwargs):
+            def decorator(func):
+                return func
+            return decorator
+        mock_fastmcp.tool = mock_tool
+        # Assign the mock to our variable
+        FastMCP = mock_fastmcp
+    else:
+        # Re-raise if not in test mode
+        raise
 
 # Disable logging for most tests to keep output clean, can be enabled for debugging
 logging.disable(logging.CRITICAL)
