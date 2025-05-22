@@ -6,6 +6,7 @@ that directly leverages the CLI rather than generating Python files.
 """
 
 import logging
+import os
 import pathlib
 import shutil
 from typing import List, Optional
@@ -39,30 +40,7 @@ def build_mcp_package(
     workers_uvicorn: Optional[int],
     cli_logger: logging.Logger,  # Logger to use for packaging messages
 ):
-    """
-    Build an MCP package for deployment using a lightweight CLI-based approach.
-
-    This function packages user Python files into a deployable service by generating
-    a start.sh script that directly uses the MCP CLI to run the service. This approach
-    eliminates the need for generating Python files, making the package simpler and
-    more maintainable.
-
-    Args:
-        package_name_from_cli: Base name for the output package.
-        source_path_str: Path to the Python file or directory containing functions.
-        target_function_names: Optional list of specific function names to expose.
-        mcp_server_name: Name for the FastMCP server.
-        mcp_server_root_path: Root path for the MCP service in Starlette.
-        mcp_service_base_path: Base path for MCP protocol endpoints.
-        log_level: Logging level for the service.
-        cors_enabled: Whether to enable CORS middleware.
-        cors_allow_origins: List of origins to allow for CORS.
-        effective_host: Host to configure in the packaged service.
-        effective_port: Port to configure in the packaged service.
-        reload_dev_mode: Whether to enable auto-reload in the packaged service.
-        workers_uvicorn: Number of worker processes for uvicorn.
-        cli_logger: Logger to use for packaging messages.
-    """
+    print("DEBUG_PACKAGING: Entered build_mcp_package function.")
     # Use the provided logger for packaging messages
     packaging_logger = cli_logger
     source_path_obj = pathlib.Path(source_path_str).resolve()
@@ -105,9 +83,14 @@ def build_mcp_package(
             )
 
     try:
+        print("DEBUG_PACKAGING: Entered main try block.")
         project_dir.mkdir(parents=True, exist_ok=True)
+        print(f"DEBUG_PACKAGING: After project_dir.mkdir. project_dir: {project_dir}")
         packaging_logger.info(f"Created project directory: {project_dir}")
 
+        print(
+            f"DEBUG_PACKAGING: About to call _copy_source_code. Source: {source_path_obj}, Dest: {project_dir}"
+        )
         # Copy the user's source code to the project directory
         original_source_rel_path_in_project = _copy_source_code(
             source_path_obj, project_dir, packaging_logger
@@ -157,8 +140,13 @@ def build_mcp_package(
         start_sh_file = project_dir / "start.sh"
         with open(start_sh_file, "w", encoding="utf-8", newline="\n") as f:
             f.write(start_sh_content)
-        start_sh_file.chmod(start_sh_file.stat().st_mode | 0o111)
-        packaging_logger.info(f"Generated {start_sh_file} and made it executable.")
+        if os.name != "nt":  # 'nt' is the name for Windows
+            start_sh_file.chmod(start_sh_file.stat().st_mode | 0o111)
+            packaging_logger.info(f"Generated {start_sh_file} and made it executable.")
+        else:
+            packaging_logger.info(
+                f"Generated {start_sh_file} (chmod skipped on Windows)."
+            )
 
         # Generate README.md (for both modes)
         readme_md_content = _generate_readme_md_content(

@@ -7,26 +7,53 @@ import sys
 import pathlib
 
 
-# Import core modules using a helper function to avoid duplicate imports
+# Simple direct import of core modules
 def _import_core_modules():
-    # Try to import from the main package path first
-    try:
-        import mcp_modelservice_sdk.src.core as core_module
+    import sys
+    import os
+    import logging
 
+    # Set up a dedicated logger
+    logger = logging.getLogger("mcp_sdk_cli.import")
+
+    # Set up PYTHONPATH properly
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    src_dir = os.path.dirname(current_dir)
+    project_root = os.path.dirname(src_dir)
+
+    # Add paths to sys.path in the correct order
+    paths_to_add = [current_dir, src_dir, project_root]
+    for path in paths_to_add:
+        if path not in sys.path:
+            sys.path.insert(0, path)
+
+    try:
+        # Direct and straightforward import using the correct path
+        from mcp_modelservice_sdk.src import core as core_module
+
+        logger.debug("Successfully imported core module directly")
         return core_module
     except ImportError as e:
-        # If that fails, try the fallback path
-        try:
-            from .src import core as core_module
+        logger.warning(f"Direct import failed: {e}")
 
-            return core_module
-        except ImportError:
-            # Both import attempts failed
-            sys.stderr.write(
-                "Failed to import core modules. Ensure the package is installed correctly or PYTHONPATH is set up.\n"
-            )
-            sys.stderr.write(f"Error details: {e}\n")
-            raise  # Re-raise the error if both imports fail
+    try:
+        # Fallback to relative import
+        from .src import core as core_module
+
+        logger.debug("Successfully imported core module using relative import")
+        return core_module
+    except ImportError as e:
+        logger.warning(f"Relative import failed: {e}")
+
+    # If we reach here, both import attempts failed
+    logger.error("All import attempts failed")
+    logger.error(f"sys.path: {sys.path}")
+    logger.error(f"Current directory: {os.getcwd()}")
+
+    # Raise a clear error
+    raise ImportError(
+        "Failed to import core modules. Make sure the package is installed or run from the correct directory."
+    )
 
 
 # Import the core module
@@ -58,7 +85,7 @@ class CommonOptions:
     def __init__(
         self,
         source_path: Annotated[
-            str,
+            Optional[str],
             typer.Option(
                 help="Path to the Python file or directory containing functions.",
                 rich_help_panel="Source Configuration",
@@ -125,7 +152,7 @@ class CommonOptions:
         self.cors_allow_origins = cors_allow_origins
 
 
-def _validate_source_path(source_path: str, logger: logging.Logger) -> bool:
+def _validate_source_path(source_path: Optional[str], logger: logging.Logger) -> bool:
     """
     Validate that the source path exists and contains valid Python files.
 
@@ -136,6 +163,10 @@ def _validate_source_path(source_path: str, logger: logging.Logger) -> bool:
     Returns:
         True if the path is valid, False otherwise
     """
+    if source_path is None:
+        logger.error("Source path is None")
+        return False
+        
     path_obj = pathlib.Path(source_path)
 
     # Check if the path exists
@@ -195,19 +226,29 @@ def _process_optional_list_str_option(
 
 @app.command()
 def run(
-    ctx: typer.Context,  # To access common options
+    ctx: typer.Context,
+    source_path: Annotated[
+        Optional[str],
+        typer.Option(
+            "--source-path",
+            help="Path to the Python file or directory containing functions.",
+            rich_help_panel="Source Configuration",
+        ),
+    ] = None,  # To access common options
     host: Annotated[
         str,
         typer.Option(
-            help="Host to bind the server to.", rich_help_panel="Network Configuration"
+            help="Host to bind the server to.",
+            rich_help_panel="Network Configuration",
         ),
     ] = "127.0.0.1",
     port: Annotated[
         int,
         typer.Option(
-            help="Port to bind the server to.", rich_help_panel="Network Configuration"
+            help="Port to bind the server to (8000-8005 are reserved).",
+            rich_help_panel="Network Configuration",
         ),
-    ] = 8000,
+    ] = 8080,
     reload: Annotated[
         bool,
         typer.Option(
@@ -235,6 +276,10 @@ def run(
 
     _setup_logging(common_opts.log_level)  # Setup SDK logging
     cli_logger.setLevel(common_opts.log_level.upper())  # Also set CLI logger level
+
+    if common_opts.source_path is None:
+        cli_logger.error("Source path is required")
+        sys.exit(1)
 
     cli_logger.info(f"Attempting to run service from source: {common_opts.source_path}")
 
@@ -265,16 +310,54 @@ def run(
         cli_logger.info("CORS will be disabled.")
 
     try:
+        # Import FastMCP explicitly to check if it's available
+        try:
+            import importlib.util
+
+            # Use importlib.util.find_spec instead of direct import
+            if importlib.util.find_spec("fastmcp") is None:
+                cli_logger.error("FastMCP module not found")
+                cli_logger.error("Please install FastMCP with: pip install fastmcp")
+                sys.exit(1)
+
+            # Use importlib to explicitly access the module
+            fastmcp_spec = importlib.util.find_spec("fastmcp")
+            if fastmcp_spec and fastmcp_spec.loader:
+                # Check if FastMCP is available without importing unused symbols
+                fastmcp_module = importlib.util.module_from_spec(fastmcp_spec)
+                fastmcp_spec.loader.exec_module(fastmcp_module)
+                # Reference the module to prevent F401 warning
+                _ = fastmcp_module
+                # Mark as available and log success
+                has_fastmcp = True
+                cli_logger.info(f"FastMCP {fastmcp_spec.origin} successfully imported")
+            else:
+                cli_logger.error("FastMCP module not found or invalid")
+                cli_logger.error("Please install FastMCP with: pip install fastmcp")
+                sys.exit(1)
+        except ImportError as e:
+            cli_logger.error(f"FastMCP not available: {e}")
+            cli_logger.error("Please install FastMCP with: pip install fastmcp")
+            sys.exit(1)
+
+        # Create the MCP application
         mcp_app = create_mcp_application(
-            source_path_str=common_opts.source_path,
+            source_path_str=common_opts.source_path,  # At this point we've verified source_path is not None
             target_function_names=processed_functions,
             mcp_server_name=common_opts.mcp_name,
             mcp_server_root_path=common_opts.server_root,
             mcp_service_base_path=common_opts.mcp_base,
-            # log_level is NOT passed here; _setup_logging handles SDK logging
             cors_enabled=common_opts.cors_enabled,
             cors_allow_origins=processed_cors_origins,
         )
+
+        if mcp_app is None and not has_fastmcp:
+            cli_logger.error(
+                "Failed to create MCP application: FastMCP is not available"
+            )
+            cli_logger.error("Please install FastMCP with: pip install fastmcp")
+            sys.exit(1)
+
         cli_logger.info(
             f"MCP application '{common_opts.mcp_name}' created successfully."
         )
@@ -373,10 +456,16 @@ def package(
     that directly uses the MCP CLI to run the service. This approach eliminates the need for generating
     additional Python files, making the package simpler and more maintainable.
     """
-    common_opts: CommonOptions = ctx.obj
+    common_opts: CommonOptions = (
+        ctx.obj
+    )  # CommonOptions object is stored in ctx.obj by the callback
 
     _setup_logging(common_opts.log_level)  # Setup SDK logging
     cli_logger.setLevel(common_opts.log_level.upper())  # Also set CLI logger level
+
+    if common_opts.source_path is None:
+        cli_logger.error("Source path is required")
+        sys.exit(1)
 
     if not package_name or not package_name.strip():
         cli_logger.error("A valid --package-name must be provided for packaging.")
@@ -501,8 +590,9 @@ def package(
 def main(
     ctx: typer.Context,
     source_path: Annotated[
-        str,
+        Optional[str],
         typer.Option(
+            "--source-path",  # Make sure the option name is explicitly defined
             help="Path to the Python file or directory containing functions.",
             rich_help_panel="Source Configuration",
         ),
@@ -565,17 +655,25 @@ def main(
     by generating only a start.sh script that directly uses the CLI to run the service, eliminating
     the need for generating additional Python files.
     """
-    # Store common options in context to be accessed by subcommands
-    ctx.obj = CommonOptions(
-        source_path=source_path,
-        log_level=log_level,
-        functions=functions,
-        mcp_name=mcp_name,
-        server_root=server_root,
-        mcp_base=mcp_base,
-        cors_enabled=cors_enabled,
-        cors_allow_origins=cors_allow_origins,
+    # Get common options from context
+    common_opts = ctx.obj or CommonOptions(
+        source_path="./",  # Use ./ as fallback if not specified
+        log_level="info",
+        functions=None,
+        mcp_name="MCPModelService",
+        server_root="/mcp-server",
+        mcp_base="/mcp",
+        cors_enabled=True,
+        cors_allow_origins=None,
     )
+
+    # Override source_path if provided directly to the command
+    if source_path is not None:
+        common_opts.source_path = source_path
+        cli_logger.info(f"Using source path from command parameter: {source_path}")
+
+    # Store common options in context to be accessed by subcommands
+    ctx.obj = common_opts
     # Initial logging setup can also be done here if desired globally for all commands
     # _setup_logging(log_level)
     # cli_logger.setLevel(log_level.upper())

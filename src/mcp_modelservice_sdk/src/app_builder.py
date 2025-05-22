@@ -80,19 +80,26 @@ def _validate_and_wrap_tool(
             f"Function '{func_name}' in '{file_path}' is missing a docstring."
         )
     else:
+        # We'll be less strict about docstrings to make it easier to register functions
         docstring = inspect.getdoc(func) or ""
+        logger.info(
+            f"Processing function '{func_name}' with docstring: {docstring[:100]}..."
+        )
+
+        # Only log missing params, don't prevent registration
         sig = inspect.signature(func)
         missing_param_docs = []
         for p_name in sig.parameters:
             if not (
                 f":param {p_name}:" in docstring
-                or f"Args:\n    {p_name} (" in docstring
-                or f"{p_name} (" in docstring
+                or f"Args:\n    {p_name}" in docstring
+                or f"{p_name}:" in docstring  # More relaxed pattern matching
+                or f"{p_name} " in docstring  # More relaxed pattern matching
             ):
                 missing_param_docs.append(p_name)
         if missing_param_docs:
-            logger.warning(
-                f"Docstring for function '{func_name}' in '{file_path}' may be missing descriptions for parameters: {', '.join(missing_param_docs)}."
+            logger.info(
+                f"Note: Function '{func_name}' has params that might need better docs: {', '.join(missing_param_docs)}."
             )
 
     sig = inspect.signature(func)
@@ -118,8 +125,28 @@ def _validate_and_wrap_tool(
         )
 
 
+# Import the normalize path function from core
+try:
+    from .core import _normalize_path
+except ImportError:
+    # Define it here if import fails
+    def _normalize_path(path_str):
+        """Normalize a path string to handle both relative and absolute paths."""
+        import os
+        import pathlib
+
+        path_obj = pathlib.Path(path_str)
+
+        # If it's already absolute, return it
+        if path_obj.is_absolute():
+            return str(path_obj)
+
+        # Otherwise, make it absolute relative to the current working directory
+        return str(pathlib.Path(os.getcwd()) / path_obj)
+
+
 def create_mcp_application(
-    source_path_str: str,
+    source_path_str: str,  # Will be normalized in the function
     target_function_names: Optional[List[str]] = None,
     mcp_server_name: str = "MCPModelService",
     mcp_server_root_path: str = "/mcp-server",
@@ -168,8 +195,18 @@ def create_mcp_application(
             "No Python files found to process. Ensure the path is correct and contains Python files."
         )
 
-    # Get base directory for determining routes
-    source_path = pathlib.Path(source_path_str).resolve()
+    # Normalize the path and convert to Path object for consistent handling
+    normalized_path = _normalize_path(source_path_str)
+    source_path = pathlib.Path(normalized_path)
+    logger.debug(f"Normalized source path: {normalized_path}")
+    logger.debug(f"Original source path: {source_path_str}")
+
+    # Ensure the path exists
+    if not source_path.exists():
+        error_msg = f"Source path does not exist: {normalized_path}"
+        logger.error(error_msg)
+        raise FileNotFoundError(error_msg)
+
     if source_path.is_file():
         base_dir = source_path.parent
     else:
@@ -215,9 +252,11 @@ def create_mcp_application(
 
         # Only keep instances that have at least one tool
         # Check if any tools were registered (implementation depends on FastMCP API)
-        has_tools = hasattr(mcp_instance, "_tools") and bool(
+        has_tools = (hasattr(mcp_instance, "_tools") and bool(
             getattr(mcp_instance, "_tools", None)
-        )
+        )) or (hasattr(mcp_instance, "tools") and bool(
+            getattr(mcp_instance, "tools", None)
+        ))
         if not has_tools:
             logger.warning(
                 f"No tools were successfully created and registered for {file_path}. Skipping."
@@ -228,11 +267,11 @@ def create_mcp_application(
         route_path = _get_route_from_path(file_path, base_dir)
 
         # Get number of tools registered (implementation depends on FastMCP API)
-        num_tools = (
-            len(getattr(mcp_instance, "_tools", []))
-            if hasattr(mcp_instance, "_tools")
-            else 0
-        )
+        num_tools = 0
+        if hasattr(mcp_instance, "_tools"):
+            num_tools = len(getattr(mcp_instance, "_tools", []))
+        elif hasattr(mcp_instance, "tools"):
+            num_tools = len(getattr(mcp_instance, "tools", []))
         logger.info(
             f"Successfully created and registered {num_tools} MCP tool(s) for '{instance_name}' to be mounted at '{route_path}'"
         )

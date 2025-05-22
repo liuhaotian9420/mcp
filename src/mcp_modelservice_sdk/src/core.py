@@ -5,10 +5,34 @@ and provides a centralized logging setup for the SDK.
 """
 
 import logging
+import os
+import pathlib
 
-# Re-export key functionalities from submodules
+# Import the required modules upfront to avoid E402 errors
 from .app_builder import create_mcp_application, TransformationError
 from .packaging import build_mcp_package
+
+
+# Function to normalize file paths to handle both relative and absolute paths
+def _normalize_path(path_str):
+    """Normalize a path string to handle both relative and absolute paths.
+
+    Args:
+        path_str: The path string to normalize
+
+    Returns:
+        A normalized absolute path
+    """
+    path_obj = pathlib.Path(path_str)
+
+    # If it's already absolute, return it
+    if path_obj.is_absolute():
+        return str(path_obj)
+
+    # Otherwise, make it absolute relative to the current working directory
+    return str(pathlib.Path(os.getcwd()) / path_obj)
+
+
 # The .discovery and .packaging_utils modules are primarily internal helpers for the above,
 # but can be imported directly if advanced users need to extend the SDK's capabilities.
 

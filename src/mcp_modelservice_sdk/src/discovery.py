@@ -5,6 +5,7 @@ functions from those files, preserving file path information for routing purpose
 """
 
 import importlib.util
+import inspect  # Moved from bottom to top
 import logging
 import os
 import pathlib
@@ -35,7 +36,25 @@ def discover_py_files(source_path_str: str) -> List[pathlib.Path]:
         FileNotFoundError: If the source_path_str does not exist.
         ValueError: If source_path_str is not a file or directory.
     """
-    source_path = pathlib.Path(source_path_str).resolve()  # Get absolute path
+    # Normalize the path first to handle both relative and absolute paths
+    try:
+        from .core import _normalize_path
+    except ImportError:
+        # Define the function locally if import fails
+        def _normalize_path(path_str):
+            import os
+            import pathlib
+
+            path_obj = pathlib.Path(path_str)
+            if path_obj.is_absolute():
+                return str(path_obj)
+            return str(pathlib.Path(os.getcwd()) / path_obj)
+
+    normalized_path = _normalize_path(source_path_str)
+    logger.debug(
+        f"Normalized source path: {normalized_path} (original: {source_path_str})"
+    )
+    source_path = pathlib.Path(normalized_path).resolve()  # Get absolute path
     if not source_path.exists():
         raise FileNotFoundError(f"Source path does not exist: {source_path_str}")
 
@@ -118,33 +137,36 @@ def discover_functions(
         The file_path is the full path to the Python file containing the function.
     """
     discovered_functions: List[Tuple[Callable[..., Any], str, pathlib.Path]] = []
-    function_name_set = set(target_function_names) if target_function_names else None
-    import inspect  # Moved import here as it's only used in this function
+    function_name_set = set(target_function_names) if target_function_names else set()
 
-    # Sort file paths to ensure consistent processing order
-    sorted_file_paths = sorted(file_paths, key=lambda p: str(p))
-
-    for file_path in sorted_file_paths:
+    for file_path in file_paths:
         logger.info(f"Discovering functions in: {file_path}")
         module = _load_module_from_path(file_path)
         if module:
+            logger.debug(f"Module loaded successfully: {module.__name__}")
             module_functions = []
             for name, member in inspect.getmembers(module):
+                logger.debug(f"Found member: {name}, type: {type(member).__name__}")
                 # Only include functions defined in this module (not imported)
-                if inspect.isfunction(member) and member.__module__ == module.__name__:
-                    # Skip private functions (starting with underscore)
-                    if name.startswith("_") and not (
-                        name.startswith("__") and name.endswith("__")
-                    ):
-                        logger.debug(
-                            f"Skipping private function: {name} in {file_path}"
-                        )
-                        continue
+                if inspect.isfunction(member):
+                    logger.debug(f"Member {name} is a function. Module: {member.__module__}, Expected: {module.__name__}")
+                    if member.__module__ == module.__name__:
+                        # Skip private functions (starting with underscore)
+                        if name.startswith("_") and not (
+                            name.startswith("__") and name.endswith("__")
+                        ):
+                            logger.debug(
+                                f"Skipping private function: {name} in {file_path}"
+                            )
+                            continue
 
-                    if function_name_set is None or name in function_name_set:
-                        module_functions.append((member, name))
-                        if function_name_set and name in function_name_set:
-                            function_name_set.remove(name)
+                        if not function_name_set or name in function_name_set:
+                            logger.debug(f"Adding function {name} to discovered functions")
+                            module_functions.append((member, name))
+                            if function_name_set and name in function_name_set:
+                                function_name_set.remove(name)
+                    else:
+                        logger.debug(f"Skipping function {name} because it's not defined in this module")
 
             if module_functions:
                 logger.info(f"Found {len(module_functions)} function(s) in {file_path}")
@@ -152,6 +174,8 @@ def discover_functions(
                     discovered_functions.append((func, name, file_path))
             else:
                 logger.warning(f"No suitable functions found in {file_path}")
+        else:
+            logger.warning(f"Failed to load module from {file_path}")
 
     if function_name_set and len(function_name_set) > 0:
         logger.warning(

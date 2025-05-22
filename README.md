@@ -33,6 +33,23 @@
 
 更多详情请参阅 [.github/README.md](.github/README.md)。
 
+## 使用 UVX 快速开始
+
+由于本包已发布在 PyPI 上，您可以使用 `uvx` 快速使用它，无需永久安装：
+
+```bash
+# 直接使用您自己的 Python 工具文件运行 MCP 服务
+uvx mcp-modelservice-sdk run --source-path your_tools.py --port 8080
+
+# 或使用自定义选项
+uvx mcp-modelservice-sdk run --source-path your_tools.py --port 9000 --host 0.0.0.0 --mcp-name CustomService
+```
+
+这使您能够：
+1. 无需永久安装即可使用 MCP SDK
+2. 使用包含函数的自己的 Python 文件运行 MCP 服务器
+3. 通过网页界面访问 MCP 工具：http://localhost:8080/mcp-server/mcp
+
 ## 先决条件
 
 - Python 3.8+
