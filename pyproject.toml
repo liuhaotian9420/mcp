@@ -4,10 +4,27 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mcp-modelservice-sdk"
-version = "0.2.4"
+version = "0.2.6"
 description = "A CLI for the MCP Modelservice Example"
-readme = "README.md"
+readme = "README.pypi.md"
 requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "Haotian Liu @heywhale"}
+]
+keywords = ["mcp", "model-context-protocol", "fastapi", "cli", "fastmcp"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+    "Topic :: System :: Networking"
+]
 dependencies = [
     "mcp[cli]>=1.3.0",
     "fastapi>=0.110.0",
@@ -19,6 +36,12 @@ dependencies = [
     "python-dotenv>=0.15.0",
     "fastmcp>=2.2.0"
 ]
+
+[project.urls]
+Homepage = "https://github.com/liuhaotian9420/mcp"
+Repository = "https://github.com/liuhaotian9420/mcp"
+Documentation = "https://github.com/liuhaotian9420/mcp/docs"
+"Bug Tracker" = "https://github.com/liuhaotian9420/mcp/issues"
 
 [project.scripts]
 mcp-modelservice = "mcp_modelservice_sdk.cli:app"

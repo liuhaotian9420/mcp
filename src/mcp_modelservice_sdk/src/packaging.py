@@ -17,6 +17,7 @@ from .packaging_utils import (
     _get_tool_documentation_details,
     _generate_start_sh_content,
     _generate_readme_md_content,
+    _generate_readme_zh_md_content,
 )
 # Assuming _setup_logging will be exposed via core or a new utils module
 # from .core import _setup_logging
@@ -164,6 +165,21 @@ def build_mcp_package(
         with open(readme_file, "w", encoding="utf-8") as f:
             f.write(readme_md_content)
         packaging_logger.info(f"Generated {readme_file}")
+
+        # Generate Chinese README.md
+        readme_zh_md_content = _generate_readme_zh_md_content(
+            package_name=package_name_from_cli,
+            mcp_server_name=mcp_server_name,
+            mcp_server_root_path=mcp_server_root_path,
+            mcp_service_base_path=mcp_service_base_path,
+            effective_host=effective_host,
+            effective_port=effective_port,
+            tool_docs=tool_docs,
+        )
+        readme_zh_file = project_dir / "README_zh.md"
+        with open(readme_zh_file, "w", encoding="utf-8") as f:
+            f.write(readme_zh_md_content)
+        packaging_logger.info(f"Generated {readme_zh_file}")
 
         packaging_logger.info(
             f"Creating zip file: {zip_file_path} from directory {project_dir}"

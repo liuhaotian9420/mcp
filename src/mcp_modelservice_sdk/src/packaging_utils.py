@@ -248,6 +248,74 @@ def _generate_readme_md_content(
         "service_url_example": service_url_example,
         "list_tools_endpoint": list_tools_endpoint,
         "tool_documentation_section": tool_documentation_section,
+        "architecture_description": "Multi-mount architecture with directory-based routing",
+        "architecture_detailed_explanation": """## Multi-Mount Architecture
+
+This service uses a **directory-based routing** approach where each Python file in your source directory gets its own FastMCP instance mounted at a path derived from its location in the directory structure.
+
+For example, if your source directory contains:
+- `moduleA.py` → mounted at `{mcp_server_root_path}/moduleA{mcp_service_base_path}`
+- `subsystemB/moduleC.py` → mounted at `{mcp_server_root_path}/subsystemB/moduleC{mcp_service_base_path}`
+- `subsystemB/__init__.py` → mounted at `{mcp_server_root_path}/subsystemB{mcp_service_base_path}`
+
+This organization allows for a more intuitive grouping of related tools based on your code's directory structure.""",
+        "source_structure": "# Your source code structure",
+        "sdk_version": "latest",
+    }
+    return template_str.format(**context)
+
+
+def _generate_readme_zh_md_content(
+    package_name: str,
+    mcp_server_name: str,
+    mcp_server_root_path: str,
+    mcp_service_base_path: str,
+    effective_host: str,
+    effective_port: int,
+    tool_docs: List[Dict[str, str]],
+) -> str:
+    """Generate Chinese README content using the Chinese template."""
+    service_url_example = f"http://{effective_host}:{effective_port}{mcp_server_root_path}{mcp_service_base_path}"
+    list_tools_endpoint = f"{service_url_example}/list_tools"
+
+    tool_doc_md_parts = []
+    if not tool_docs:
+        tool_doc_md_parts.append("*未找到工具。*\n")
+    else:
+        for tool in tool_docs:
+            tool_doc_md_parts.append(f"### `{tool['name']}`")
+            tool_doc_md_parts.append(f"*来源: `{tool['file_path']}`*\n")
+            tool_doc_md_parts.append(
+                f"**函数签名:**\n```python\n{tool['signature']}\n```\n"
+            )
+            tool_doc_md_parts.append(
+                f"**描述:**\n```\n{tool['docstring']}\n```\n---"
+            )
+    tool_documentation_section = "\n".join(tool_doc_md_parts)
+
+    template_str = _read_template("README_zh.md.template")
+
+    context: Dict[str, Any] = {
+        "package_name": package_name,
+        "mcp_server_name": mcp_server_name,
+        "mcp_server_root_path": mcp_server_root_path,
+        "mcp_service_base_path": mcp_service_base_path,
+        "service_url_example": service_url_example,
+        "list_tools_endpoint": list_tools_endpoint,
+        "tool_documentation_section": tool_documentation_section,
+        "architecture_description": "基于目录的多挂载架构路由",
+        "architecture_detailed_explanation": """## 多挂载架构
+
+此服务使用**基于目录的路由**方法，其中源目录中的每个 Python 文件都有自己的 FastMCP 实例，挂载在根据其在目录结构中的位置派生的路径上。
+
+例如，如果您的源目录包含：
+- `moduleA.py` → 挂载在 `{mcp_server_root_path}/moduleA{mcp_service_base_path}`
+- `subsystemB/moduleC.py` → 挂载在 `{mcp_server_root_path}/subsystemB/moduleC{mcp_service_base_path}`
+- `subsystemB/__init__.py` → 挂载在 `{mcp_server_root_path}/subsystemB{mcp_service_base_path}`
+
+这种组织方式允许根据代码的目录结构对相关工具进行更直观的分组。""",
+        "source_structure": "# 您的源代码结构",
+        "sdk_version": "latest",
     }
     return template_str.format(**context)
 
