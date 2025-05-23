@@ -151,33 +151,51 @@ def _generate_start_sh_content(
         "start.sh.template"
     )  # Using our lightweight template as the default
 
-    # Prepare CLI flags
-    cors_enabled_flag = "--cors-enabled" if cors_enabled else "--no-cors-enabled"
+    # Prepare CLI flags - collect non-empty flags
+    cli_flags = []
+    
+    # CORS settings
+    if cors_enabled:
+        cli_flags.append("--cors-enabled")
+    else:
+        cli_flags.append("--no-cors-enabled")
 
     # Handle CORS origins
-    cors_origins_flag = ""
     if cors_allow_origins and len(cors_allow_origins) > 0:
-        cors_origins_str = " ".join(
-            [f"--cors-allow-origins {origin}" for origin in cors_allow_origins]
-        )
-        cors_origins_flag = cors_origins_str
+        for origin in cors_allow_origins:
+            # Quote the origin to prevent shell expansion (e.g., * would expand to filenames)
+            cli_flags.append(f'--cors-allow-origins "{origin}"')
 
     # Handle functions list
-    functions_flag = ""
     if target_function_names and len(target_function_names) > 0:
-        functions_str = " ".join(
-            [f"--functions {func}" for func in target_function_names]
-        )
-        functions_flag = functions_str
+        for func in target_function_names:
+            # Quote the function name to handle names with spaces or special characters
+            cli_flags.append(f'--functions "{func}"')
 
+    # Handle mode flag
+    if mode:
+        cli_flags.append(f"--mode {mode}")
+
+    # Command options
+    run_options = []
+    
     # Handle reload flag
-    reload_flag = "--reload" if reload_dev_mode else ""
+    if reload_dev_mode:
+        run_options.append("--reload")
 
     # Handle workers flag
-    workers_flag = f"--workers {workers_uvicorn}" if workers_uvicorn is not None else ""
+    if workers_uvicorn is not None:
+        run_options.append(f"--workers {workers_uvicorn}")
+
+    # Join flags with proper line continuations
+    cli_flags_str = " \\\n        ".join(cli_flags) if cli_flags else ""
+    run_options_str = " \\\n        ".join(run_options) if run_options else ""
     
-    # Handle mode flag
-    mode_flag = f"--mode {mode}" if mode is not None else ""
+    # Handle run_options with continuation - only add \ and newline if there are run_options
+    if run_options_str:
+        run_options_with_continuation = f" \\\n        {run_options_str}"
+    else:
+        run_options_with_continuation = ""
 
     return template_str.format(
         source_path=source_path,
@@ -187,12 +205,9 @@ def _generate_start_sh_content(
         log_level=log_level,
         effective_host=effective_host,
         effective_port=effective_port,
-        cors_enabled_flag=cors_enabled_flag,
-        cors_origins_flag=cors_origins_flag,
-        functions_flag=functions_flag,
-        reload_flag=reload_flag,
-        workers_flag=workers_flag,
-        mode_flag=mode_flag,
+        cli_flags=cli_flags_str,
+        run_options=run_options_str,
+        run_options_with_continuation=run_options_with_continuation,
     )
 
 
@@ -267,7 +282,7 @@ def _copy_source_code(
             logger_to_use.info(
                 f"Copied source directory {source_path_obj} to {target_dir_for_user_module}"
             )
-            return f"{user_src_dir_name}/{source_path_obj.name}".replace(
+            return f"{source_path_obj.name}".replace(
                 "\\", "/"
             )  # Ensure forward slashes
         else:

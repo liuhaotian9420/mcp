@@ -1,25 +1,25 @@
 #!/usr/bin/env bash
 # start.sh - Install dependencies and start the MCP service using the CLI
 set -euo pipefail
-SCRIPT_DIR="$(cd "$(dirname "${{BASH_SOURCE[0]}}")" &>/dev/null && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 cd "$SCRIPT_DIR" || exit 1
 echo "[INFO] MCP Service Start Script (CLI-Based)"
 
 # Environment variables for Python and pip executables
-PYTHON_CMD="${{PYTHON_EXECUTABLE:-python3}}"
-PIP_CMD="${{PIP_EXECUTABLE:-pip3}}"
+PYTHON_CMD="${PYTHON_EXECUTABLE:-python3}"
+PIP_CMD="${PIP_EXECUTABLE:-pip3}"
 
 # Function to check if a command exists
-check_command() {{
+check_command() {
     if ! command -v "$1" &> /dev/null; then
         echo "[ERROR] Command not found: $1. Please ensure it is installed and in PATH."
         echo "If you are in a virtual environment, ensure it is activated."
         exit 1
     fi
-}}
+}
 
 # Function to install dependencies
-install_dependencies() {{
+install_dependencies() {
     echo "[INFO] Checking/Installing Python dependencies using $PIP_CMD..."
     check_command "$PYTHON_CMD"
     check_command "$PIP_CMD"
@@ -52,22 +52,24 @@ install_dependencies() {{
             echo "You may need to install them manually."
         fi
     fi
-}}
+}
 
 # Function to start the service using the CLI
-start_service() {{
+start_service() {
     echo "[INFO] Starting MCP service using mcp-modelservice CLI..."
     $PYTHON_CMD -m mcp_modelservice_sdk.cli \
-        --source-path "{source_path}" \
-        --mcp-name "{mcp_server_name}" \
-        --server-root "{mcp_server_root_path}" \
-        --mcp-base "{mcp_service_base_path}" \
-        --log-level "{log_level}" \
-        {cli_flags} \
+        --source-path "user_src/simple_text_tool.py" \
+        --mcp-name "MCPModelService" \
+        --server-root "/mcp-server" \
+        --mcp-base "/mcp" \
+        --log-level "info" \
+        --cors-enabled \
+        --cors-allow-origins * \
+        --mode composed \
         run \
-        --host "{effective_host}" \
-        --port {effective_port}{run_options_with_continuation}
-}}
+        --host "0.0.0.0" \
+        --port 8080
+}
 
 # Main execution
 echo "[INFO] Ensuring Python executable: $PYTHON_CMD can be found."
