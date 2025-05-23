@@ -257,7 +257,6 @@ def _copy_source_code(
     project_dir: pathlib.Path,
     logger_to_use: logging.Logger,
 ) -> str:
-    user_src_dir_name = "user_src"
     user_src_target_dir = project_dir
     try:
         if not user_src_target_dir.exists():
@@ -266,7 +265,7 @@ def _copy_source_code(
             target_file = user_src_target_dir / source_path_obj.name
             shutil.copy2(source_path_obj, target_file)
             logger_to_use.info(f"Copied source file {source_path_obj} to {target_file}")
-            return f"{user_src_dir_name}/{source_path_obj.name}".replace(
+            return f"{source_path_obj.name}".replace(
                 "\\", "/"
             )  # Ensure forward slashes
         elif source_path_obj.is_dir():
