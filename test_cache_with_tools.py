@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """Test script to demonstrate SessionToolCallCache working with actual tool calls."""
 
+from src.mcp_modelservice_sdk.src.app_builder import (
+    create_mcp_application,
+    set_current_session_id,
+)
+
 import sys
 import logging
 import tempfile
@@ -11,10 +16,7 @@ sys.path.insert(0, ".")
 # Set up logging to see cache messages
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
-from src.mcp_modelservice_sdk.src.app_builder import (
-    create_mcp_application,
-    set_current_session_id,
-)
+
 
 
 def test_cache_with_actual_tools():
@@ -57,7 +59,6 @@ def expensive_multiply(x: int, y: int) -> int:
 
         # Get the cache and FastMCP instance
         cache = app.state.tool_call_cache
-        fastmcp_instance = app.state.fastmcp_instance
 
         print("✅ MCP application created with cache enabled")
         print(f"✅ Cache statistics: {cache.get_stats()}")

@@ -1,6 +1,7 @@
 """
 Main CLI module that orchestrates all commands and configuration.
 """
+
 import typer
 import logging
 import pathlib
@@ -23,9 +24,7 @@ app = typer.Typer(
 # Configure a logger for the CLI itself
 cli_logger = logging.getLogger("mcp_sdk_cli")
 if not cli_logger.hasHandlers():
-    logging.basicConfig(
-        level=logging.INFO, format="%(levelname)s: %(message)s"
-    )
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     cli_logger.setLevel(logging.INFO)
 
 
@@ -179,8 +178,10 @@ def main(
             # Fallback if path resolution fails for some reason
             cli_logger.info(f"Effective source path: {common_obj.source_path}")
     else:
-        cli_logger.warning("Source path is not configured. Defaulting may occur or errors might follow.")
+        cli_logger.warning(
+            "Source path is not configured. Defaulting may occur or errors might follow."
+        )
 
 
 if __name__ == "__main__":
-    app() 
+    app()

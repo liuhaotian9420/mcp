@@ -11,7 +11,7 @@ import pathlib
 import shutil
 from typing import List, Optional
 
-from .app_builder import TransformationError
+from .utils import TransformationError
 from .packaging_utils import (
     _copy_source_code,
     _get_tool_documentation_details,
@@ -19,8 +19,6 @@ from .packaging_utils import (
     _generate_readme_md_content,
     _generate_readme_zh_md_content,
 )
-# Assuming _setup_logging will be exposed via core or a new utils module
-# from .core import _setup_logging
 
 logger = logging.getLogger(__name__)
 

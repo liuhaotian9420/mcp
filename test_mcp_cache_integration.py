@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Test script to demonstrate SessionToolCallCache integration with MCP application."""
-
+from src.mcp_modelservice_sdk.src.app_builder import (
+    create_mcp_application,
+    set_current_session_id,
+)
 import sys
 import time
 import logging
@@ -10,10 +13,7 @@ sys.path.insert(0, ".")
 # Set up logging to see cache messages
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
-from src.mcp_modelservice_sdk.src.app_builder import (
-    create_mcp_application,
-    set_current_session_id,
-)
+
 
 
 def slow_add(a: int, b: int) -> int:
@@ -95,7 +95,7 @@ def slow_multiply(x: int, y: int) -> int:
 
             # Get the FastMCP instance to test tools directly
             if hasattr(app.state, "fastmcp_instance"):
-                fastmcp_instance = app.state.fastmcp_instance
+                app.state.fastmcp_instance
                 print("✅ FastMCP instance found in app state")
 
                 # Test the cached tools by simulating different sessions

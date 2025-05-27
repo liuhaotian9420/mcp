@@ -269,7 +269,8 @@ class SQLiteEventStore(EventStore):
                 logger.warning(f"Event ID {last_event_id} not found")
                 return None
 
-            stream_id, last_sequence = result
+            stream_id: str = result[0]
+            last_sequence: int = result[1]
 
             # Get all events after the last sequence number for this stream
             cursor.execute(

@@ -6,10 +6,10 @@ import inspect
 import logging
 import pathlib
 import shutil
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional
 
 from .discovery import discover_py_files, discover_functions
-from .app_builder import TransformationError  # For _copy_source_code
+from .utils import TransformationError  # For _copy_source_code
 
 logger = logging.getLogger(__name__)
 
@@ -198,28 +198,20 @@ def _generate_start_sh_content(
     if json_response:
         cli_flags.append("--json-response")
 
-    # Command options
-    run_options = []
-
-    # Handle reload flag
+    # Handle reload and workers for uvicorn
+    uvicorn_flags = []
     if reload_dev_mode:
-        run_options.append("--reload")
+        uvicorn_flags.append("--reload")
 
-    # Handle workers flag
-    if workers_uvicorn is not None:
-        run_options.append(f"--workers {workers_uvicorn}")
+    if workers_uvicorn and workers_uvicorn > 0:
+        uvicorn_flags.append(f"--workers {workers_uvicorn}")
 
-    # Join flags with proper line continuations
-    cli_flags_str = " \\\n        ".join(cli_flags) if cli_flags else ""
-    run_options_str = " \\\n        ".join(run_options) if run_options else ""
+    # Join all CLI flags
+    cli_flags_str = " ".join(cli_flags) if cli_flags else ""
+    uvicorn_flags_str = " ".join(uvicorn_flags) if uvicorn_flags else ""
 
-    # Handle run_options with continuation - only add \ and newline if there are run_options
-    if run_options_str:
-        run_options_with_continuation = f" \\\n        {run_options_str}"
-    else:
-        run_options_with_continuation = ""
-
-    return template_str.format(
+    # Replace placeholders in the template
+    content = template_str.format(
         source_path=source_path,
         mcp_server_name=mcp_server_name,
         mcp_server_root_path=mcp_server_root_path,
@@ -228,9 +220,10 @@ def _generate_start_sh_content(
         effective_host=effective_host,
         effective_port=effective_port,
         cli_flags=cli_flags_str,
-        run_options=run_options_str,
-        run_options_with_continuation=run_options_with_continuation,
+        uvicorn_flags=uvicorn_flags_str,
     )
+
+    return content
 
 
 def _generate_readme_md_content(
@@ -242,49 +235,37 @@ def _generate_readme_md_content(
     effective_port: int,
     tool_docs: List[Dict[str, str]],
 ) -> str:
-    service_url_example = f"http://{effective_host}:{effective_port}{mcp_server_root_path}{mcp_service_base_path}"
-    list_tools_endpoint = f"{service_url_example}/list_tools"
-
-    tool_doc_md_parts = []
-    if not tool_docs:
-        tool_doc_md_parts.append("*No tools were found or specified for exposure.*\n")
-    else:
-        for tool in tool_docs:
-            tool_doc_md_parts.append(f"### `{tool['name']}`")
-            tool_doc_md_parts.append(f"*Source: `{tool['file_path']}`*\n")
-            tool_doc_md_parts.append(
-                f"**Signature:**\n```python\n{tool['signature']}\n```\n"
-            )
-            tool_doc_md_parts.append(
-                f"**Description:**\n```\n{tool['docstring']}\n```\n---"
-            )
-    tool_documentation_section = "\n".join(tool_doc_md_parts)
-
+    """
+    Generate README.md content for the packaged service.
+    """
     template_str = _read_template("README.md.template")
 
-    context: Dict[str, Any] = {
-        "package_name": package_name,
-        "mcp_server_name": mcp_server_name,
-        "mcp_server_root_path": mcp_server_root_path,
-        "mcp_service_base_path": mcp_service_base_path,
-        "service_url_example": service_url_example,
-        "list_tools_endpoint": list_tools_endpoint,
-        "tool_documentation_section": tool_documentation_section,
-        "architecture_description": "Multi-mount architecture with directory-based routing",
-        "architecture_detailed_explanation": """## Multi-Mount Architecture
+    # Generate tool documentation section
+    tools_section = ""
+    if tool_docs:
+        tools_section = "## Available Tools\n\n"
+        for tool in tool_docs:
+            tools_section += f"### {tool['name']}\n\n"
+            tools_section += f"**Signature:** `{tool['signature']}`\n\n"
+            tools_section += f"**Description:** {tool['docstring']}\n\n"
+            tools_section += f"**Source:** {tool['file_path']}\n\n"
+    else:
+        tools_section = (
+            "## Available Tools\n\nNo tools were documented during packaging.\n\n"
+        )
 
-This service uses a **directory-based routing** approach where each Python file in your source directory gets its own FastMCP instance mounted at a path derived from its location in the directory structure.
+    # Replace placeholders in the template
+    content = template_str.format(
+        package_name=package_name,
+        mcp_server_name=mcp_server_name,
+        mcp_server_root_path=mcp_server_root_path,
+        mcp_service_base_path=mcp_service_base_path,
+        effective_host=effective_host,
+        effective_port=effective_port,
+        tools_section=tools_section,
+    )
 
-For example, if your source directory contains:
-- `moduleA.py` → mounted at `{mcp_server_root_path}/moduleA{mcp_service_base_path}`
-- `subsystemB/moduleC.py` → mounted at `{mcp_server_root_path}/subsystemB/moduleC{mcp_service_base_path}`
-- `subsystemB/__init__.py` → mounted at `{mcp_server_root_path}/subsystemB{mcp_service_base_path}`
-
-This organization allows for a more intuitive grouping of related tools based on your code's directory structure.""",
-        "source_structure": "# Your source code structure",
-        "sdk_version": "latest",
-    }
-    return template_str.format(**context)
+    return content
 
 
 def _generate_readme_zh_md_content(
@@ -296,48 +277,35 @@ def _generate_readme_zh_md_content(
     effective_port: int,
     tool_docs: List[Dict[str, str]],
 ) -> str:
-    """Generate Chinese README content using the Chinese template."""
-    service_url_example = f"http://{effective_host}:{effective_port}{mcp_server_root_path}{mcp_service_base_path}"
-    list_tools_endpoint = f"{service_url_example}/list_tools"
-
-    tool_doc_md_parts = []
-    if not tool_docs:
-        tool_doc_md_parts.append("*未找到工具。*\n")
-    else:
-        for tool in tool_docs:
-            tool_doc_md_parts.append(f"### `{tool['name']}`")
-            tool_doc_md_parts.append(f"*来源: `{tool['file_path']}`*\n")
-            tool_doc_md_parts.append(
-                f"**函数签名:**\n```python\n{tool['signature']}\n```\n"
-            )
-            tool_doc_md_parts.append(f"**描述:**\n```\n{tool['docstring']}\n```\n---")
-    tool_documentation_section = "\n".join(tool_doc_md_parts)
-
+    """
+    Generate Chinese README.md content for the packaged service.
+    """
     template_str = _read_template("README_zh.md.template")
 
-    context: Dict[str, Any] = {
-        "package_name": package_name,
-        "mcp_server_name": mcp_server_name,
-        "mcp_server_root_path": mcp_server_root_path,
-        "mcp_service_base_path": mcp_service_base_path,
-        "service_url_example": service_url_example,
-        "list_tools_endpoint": list_tools_endpoint,
-        "tool_documentation_section": tool_documentation_section,
-        "architecture_description": "基于目录的多挂载架构路由",
-        "architecture_detailed_explanation": """## 多挂载架构
+    # Generate tool documentation section in Chinese
+    tools_section = ""
+    if tool_docs:
+        tools_section = "## 可用工具\n\n"
+        for tool in tool_docs:
+            tools_section += f"### {tool['name']}\n\n"
+            tools_section += f"**函数签名:** `{tool['signature']}`\n\n"
+            tools_section += f"**描述:** {tool['docstring']}\n\n"
+            tools_section += f"**源文件:** {tool['file_path']}\n\n"
+    else:
+        tools_section = "## 可用工具\n\n打包过程中未发现任何工具。\n\n"
 
-此服务使用**基于目录的路由**方法，其中源目录中的每个 Python 文件都有自己的 FastMCP 实例，挂载在根据其在目录结构中的位置派生的路径上。
+    # Replace placeholders in the template
+    content = template_str.format(
+        package_name=package_name,
+        mcp_server_name=mcp_server_name,
+        mcp_server_root_path=mcp_server_root_path,
+        mcp_service_base_path=mcp_service_base_path,
+        effective_host=effective_host,
+        effective_port=effective_port,
+        tools_section=tools_section,
+    )
 
-例如，如果您的源目录包含：
-- `moduleA.py` → 挂载在 `{mcp_server_root_path}/moduleA{mcp_service_base_path}`
-- `subsystemB/moduleC.py` → 挂载在 `{mcp_server_root_path}/subsystemB/moduleC{mcp_service_base_path}`
-- `subsystemB/__init__.py` → 挂载在 `{mcp_server_root_path}/subsystemB{mcp_service_base_path}`
-
-这种组织方式允许根据代码的目录结构对相关工具进行更直观的分组。""",
-        "source_structure": "# 您的源代码结构",
-        "sdk_version": "latest",
-    }
-    return template_str.format(**context)
+    return content
 
 
 def _copy_source_code(
@@ -345,45 +313,39 @@ def _copy_source_code(
     project_dir: pathlib.Path,
     logger_to_use: logging.Logger,
 ) -> str:
-    user_src_target_dir = project_dir
+    """
+    Copy the user's source code to the project directory.
+
+    Args:
+        source_path_obj: Path to the source code (file or directory).
+        project_dir: Destination project directory.
+        logger_to_use: Logger to use for messages.
+
+    Returns:
+        The relative path to the copied source within the project directory.
+
+    Raises:
+        TransformationError: If copying fails.
+    """
     try:
-        if not user_src_target_dir.exists():
-            user_src_target_dir.mkdir(parents=True, exist_ok=True)
         if source_path_obj.is_file():
-            target_file = user_src_target_dir / source_path_obj.name
-            shutil.copy2(source_path_obj, target_file)
-            logger_to_use.info(f"Copied source file {source_path_obj} to {target_file}")
-            return f"{source_path_obj.name}".replace(
-                "\\", "/"
-            )  # Ensure forward slashes
+            # Copy single file
+            dest_file = project_dir / source_path_obj.name
+            shutil.copy2(source_path_obj, dest_file)
+            logger_to_use.info(f"Copied source file: {source_path_obj} -> {dest_file}")
+            return source_path_obj.name
         elif source_path_obj.is_dir():
-            target_dir_for_user_module = user_src_target_dir / source_path_obj.name
-            if target_dir_for_user_module.exists():
-                logger_to_use.info(
-                    f"Removing existing target directory for user module: {target_dir_for_user_module}"
-                )
-                shutil.rmtree(target_dir_for_user_module)
-            shutil.copytree(
-                source_path_obj, target_dir_for_user_module, dirs_exist_ok=False
-            )
+            # Copy entire directory
+            dest_dir = project_dir / source_path_obj.name
+            shutil.copytree(source_path_obj, dest_dir)
             logger_to_use.info(
-                f"Copied source directory {source_path_obj} to {target_dir_for_user_module}"
+                f"Copied source directory: {source_path_obj} -> {dest_dir}"
             )
-            return f"{source_path_obj.name}".replace(
-                "\\", "/"
-            )  # Ensure forward slashes
+            return source_path_obj.name
         else:
-            raise ValueError(
-                f"Source path {source_path_obj} is not a file or directory."
+            raise TransformationError(
+                f"Source path is neither file nor directory: {source_path_obj}"
             )
-    except FileNotFoundError as e:
-        logger_to_use.error(
-            f"Error copying source code: File not found {e.filename if hasattr(e, 'filename') else e}"
-        )
-        raise TransformationError(f"Failed to copy source code: {e}")
     except Exception as e:
-        logger_to_use.error(
-            f"An unexpected error occurred while copying source code from {source_path_obj}: {e}",
-            exc_info=True,
-        )
+        logger_to_use.error(f"Failed to copy source code: {e}")
         raise TransformationError(f"Failed to copy source code: {e}")

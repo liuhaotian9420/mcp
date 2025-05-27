@@ -3,7 +3,7 @@ Factory for creating complete MCP applications with multiple FastMCP instances.
 """
 
 import logging
-from typing import List, Optional
+from typing import List, Optional, Any, cast
 from contextlib import asynccontextmanager, AsyncExitStack
 from starlette.applications import Starlette
 from starlette.routing import Mount
@@ -112,9 +112,9 @@ def create_mcp_application(
         raise TransformationError(
             "No FastMCP instances could be created with valid tools."
         )
-
+    starlette_app: Starlette = Starlette()
     if mode == "composed":
-        return _create_composed_application(
+        starlette_app = _create_composed_application(
             mcp_instances,
             mcp_server_name,
             mcp_server_root_path,
@@ -125,8 +125,9 @@ def create_mcp_application(
             stateless_http,
             tool_call_cache,
         )
+        return starlette_app
     elif mode == "routed":
-        return _create_routed_application(
+        starlette_app = _create_routed_application(
             mcp_instances,
             mcp_service_base_path,
             middleware,
@@ -135,6 +136,7 @@ def create_mcp_application(
             stateless_http,
             tool_call_cache,
         )
+        return starlette_app
     else:
         raise TransformationError(f"Invalid mode: {mode}")
 
@@ -172,8 +174,9 @@ def _create_composed_application(
     # Create the ASGI app
     from fastmcp.server.http import create_streamable_http_app
 
+    # Cast to Any to avoid type issues with MockFastMCP vs FastMCP
     main_asgi_app = create_streamable_http_app(
-        server=main_mcp,
+        server=cast(Any, main_mcp),
         streamable_http_path=mcp_service_base_path,
         event_store=event_store,
         json_response=json_response,
@@ -216,7 +219,7 @@ def _create_routed_application(
         from fastmcp.server.http import create_streamable_http_app
 
         file_app = create_streamable_http_app(
-            server=file_mcp,
+            server=cast(Any, file_mcp),
             streamable_http_path=mcp_service_base_path,
             event_store=event_store,
             json_response=json_response,

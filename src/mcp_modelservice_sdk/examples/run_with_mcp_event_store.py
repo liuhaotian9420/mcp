@@ -7,6 +7,7 @@ MCP EventStore interface for resumability support in FastMCP HTTP transport.
 Usage:
     python run_with_mcp_event_store.py
 """
+from mcp_modelservice_sdk.src.app_builder import create_mcp_application
 
 import sys
 import logging
@@ -18,7 +19,6 @@ parent_dir = str(Path(__file__).resolve().parent.parent.parent)
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 
-from mcp_modelservice_sdk.src.app_builder import create_mcp_application
 
 # Configure logging
 logging.basicConfig(

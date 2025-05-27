@@ -38,10 +38,10 @@ def discover_py_files(source_path_str: str) -> List[pathlib.Path]:
     """
     # Normalize the path first to handle both relative and absolute paths
     try:
-        from .core import _normalize_path
+        from .utils import normalize_path
     except ImportError:
         # Define the function locally if import fails
-        def _normalize_path(path_str):
+        def normalize_path(path_str: str) -> str:
             import os
             import pathlib
 
@@ -50,7 +50,7 @@ def discover_py_files(source_path_str: str) -> List[pathlib.Path]:
                 return str(path_obj)
             return str(pathlib.Path(os.getcwd()) / path_obj)
 
-    normalized_path = _normalize_path(source_path_str)
+    normalized_path = normalize_path(source_path_str)
     logger.debug(
         f"Normalized source path: {normalized_path} (original: {source_path_str})"
     )

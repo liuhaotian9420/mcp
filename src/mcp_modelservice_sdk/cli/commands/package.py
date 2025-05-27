@@ -1,6 +1,7 @@
 """
 Package command implementation for the CLI.
 """
+
 import typer
 import logging
 import sys
@@ -103,7 +104,9 @@ def package_command(
     )
 
     if common_opts.functions:
-        cli_logger.info(f"Targeting specific functions for package: {common_opts.functions}")
+        cli_logger.info(
+            f"Targeting specific functions for package: {common_opts.functions}"
+        )
 
     if common_opts.cors_enabled:
         cli_logger.info(
@@ -114,24 +117,31 @@ def package_command(
 
     # Validate configuration combinations for packaging
     if common_opts.enable_event_store and common_opts.json_response:
-        cli_logger.error("Event store can only be used with SSE mode (json_response=False). Please disable either event store or JSON response mode.")
+        cli_logger.error(
+            "Event store can only be used with SSE mode (json_response=False). Please disable either event store or JSON response mode."
+        )
         sys.exit(1)
 
     # Log transport configuration for packaging
     transport_mode = "stateless" if common_opts.stateless_http else "stateful"
     response_format = "JSON" if common_opts.json_response else "SSE"
-    cli_logger.info(f"Package will use transport mode: {transport_mode}, Response format: {response_format}")
+    cli_logger.info(
+        f"Package will use transport mode: {transport_mode}, Response format: {response_format}"
+    )
 
     # Log event store configuration for packaging
     if common_opts.enable_event_store:
         event_store_path_info = common_opts.event_store_path or "./mcp_event_store.db"
-        cli_logger.info(f"Event store will be enabled in package using SQLite database: {event_store_path_info}")
+        cli_logger.info(
+            f"Event store will be enabled in package using SQLite database: {event_store_path_info}"
+        )
     else:
         cli_logger.info("Event store will be disabled in package.")
 
     try:
         # Import the build_mcp_package function
         from ..imports import import_core_modules
+
         core = import_core_modules()
         build_mcp_package = core.build_mcp_package
 
@@ -144,7 +154,9 @@ def package_command(
             mcp_service_base_path=common_opts.mcp_base,
             log_level=common_opts.log_level,
             cors_enabled=common_opts.cors_enabled,
-            cors_allow_origins=common_opts.cors_allow_origins if common_opts.cors_allow_origins is not None else [],
+            cors_allow_origins=common_opts.cors_allow_origins
+            if common_opts.cors_allow_origins is not None
+            else [],
             effective_host=effective_package_host,
             effective_port=effective_package_port,
             reload_dev_mode=package_reload,
@@ -178,4 +190,4 @@ def package_command(
         cli_logger.error(
             f"An unexpected error occurred during packaging: {e}", exc_info=True
         )
-        sys.exit(1) 
+        sys.exit(1)

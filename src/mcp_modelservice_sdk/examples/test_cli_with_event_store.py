@@ -130,8 +130,8 @@ def test_cli_with_event_store():
 
         try:
             shutil.rmtree(temp_dir)
-        except:
-            pass
+        except Exception as e:
+            print(f"❌ Error cleaning up: {e}")
 
 
 def main():

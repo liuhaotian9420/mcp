@@ -5,6 +5,11 @@ Usage:
     python run_with_event_store.py --source-path /path/to/tools --event-store
 """
 
+
+from mcp_modelservice_sdk.src.app_builder import create_mcp_application
+from mcp_modelservice_sdk.src.cli import run_app_with_args
+
+
 import sys
 import logging
 from pathlib import Path
@@ -13,9 +18,6 @@ from pathlib import Path
 parent_dir = str(Path(__file__).resolve().parent.parent.parent)
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
-
-from mcp_modelservice_sdk.src.app_builder import create_mcp_application
-from mcp_modelservice_sdk.src.cli import run_app_with_args
 
 # Configure logging
 logging.basicConfig(
