@@ -85,13 +85,12 @@ def multiply(a: float, b: float) -> float:
 
 ### 🔬 两大核心模式
 
-**1. 本地运行**
+**1. 本地运行模式 (run)**
 
-- 使用 mcp-modelservice run 命令可以在本地将多个 Python 文件中的函数部署为若干个指定端口的 MCP 服务
+- 使用 `mcp-modelservice run` 命令可以在本地将多个 Python 文件中的函数部署为若干个指定端口的 MCP 服务
 
-**2. 打包文件**
-- 使用 mcp-modelservice package 命令可以将指定文件夹打包在一个名为 project 的文件夹之中，并且提供一个 start.sh 作为启动服务的脚本
-- 
+**2. 打包模式 (package)**
+- 使用 `mcp-modelservice package` 命令可以将指定文件夹打包在一个名为 project 的文件夹之中，并且提供一个 start.sh 作为启动服务的脚本
 
 ```bash
 # 启动服务
@@ -104,14 +103,78 @@ uvx mcp-modelservice-sdk package --source-path /path/to/your/code --output my-se
 uvx mcp-modelservice-sdk --help
 ```
 
-### 🛠️ 两种部署方案
+### 🛠️ 两种架构模式
 
-**1. composed 模式**
+我们提供两种不同的服务架构模式，您可以根据具体需求选择：
 
-- 将不同的工具打包在一个固定的路径下，通过工具名称来区分调度
+#### 📋 Composed 模式（组合模式）- **推荐**
 
-**2. routed 模式**
+**工作原理**：
+- 创建一个主 FastMCP 实例作为"宿主"
+- 每个 Python 文件创建独立的 FastMCP 子实例
+- 所有子实例挂载到主实例下，通过分隔符区分不同的工具
 
+**特点**：
+- ✅ **统一入口**：所有工具都通过单一端点访问
+- ✅ **简化客户端**：客户端只需连接一个地址
+- ✅ **资源共享**：更好的资源利用和管理
+- ✅ **命名空间**：使用 "+" "_" "." 分隔符自动管理工具命名
+
+**适用场景**：
+- 需要统一 API 访问的应用
+- 工具之间有协作关系
+- 希望简化客户端集成
+- 中小型项目或原型开发
+
+**使用示例**：
+```bash
+# 使用组合模式（默认）
+mcp-modelservice run --source-path ./my_tools --mode composed
+
+# 访问地址：http://localhost:8080/mcp-server/mcp
+# 工具调用：tool_file1_add, tool_file2_calculate 等
+```
+
+#### 🔀 Routed 模式（路由模式）
+
+**工作原理**：
+- 每个 Python 文件创建独立的 FastMCP 实例
+- 每个实例分配独立的路由路径
+- 按照文件目录结构自动生成访问路径
+
+**特点**：
+- ✅ **模块隔离**：每个文件模块完全独立
+- ✅ **微服务架构**：符合微服务设计原则
+- ✅ **独立部署**：可以单独管理和扩展每个模块
+- ✅ **清晰分离**：不同功能模块有明确的边界
+
+**适用场景**：
+- 大型项目或企业级应用
+- 需要模块化部署和管理
+- 团队协作开发，不同模块由不同人维护
+- 需要独立扩展某些特定功能
+
+**使用示例**：
+```bash
+# 使用路由模式
+mcp-modelservice run --source-path ./my_tools --mode routed
+
+# 访问地址：
+# http://localhost:8080/math_tools - 数学工具模块
+# http://localhost:8080/text_tools - 文本工具模块
+# http://localhost:8080/data_tools - 数据工具模块
+```
+
+#### 🆚 模式对比
+
+| 特性 | Composed 模式 | Routed 模式 |
+|------|---------------|-------------|
+| **访问方式** | 单一端点 | 多个端点 |
+| **工具命名** | 自动前缀 | 原始名称 |
+| **资源占用** | 较低 | 较高 |
+| **部署复杂度** | 简单 | 中等 |
+| **扩展性** | 垂直扩展 | 水平扩展 |
+| **适用规模** | 中小型 | 大型 |
 
 ### 参数说明
 
@@ -121,6 +184,7 @@ uvx mcp-modelservice-sdk --help
 | `--port`       | 服务监听端口                 | 8080            |
 | `--host`       | 服务监听地址                 | 127.0.0.1       |
 | `--mcp-name`   | 服务名称                     | 自动生成        |
+| `--mode`       | 架构模式 (composed/routed)    | composed        |
 
 
 ## 🤝 客户端使用
@@ -165,6 +229,14 @@ print(result)  # 输出: {'jsonrpc': '2.0', 'result': 8, 'id': 1}
 2. 确保 Python 代码没有语法错误
 3. 查看控制台输出，查找具体错误信息
 
+### 如何选择合适的架构模式？
+
+- **小型项目 < 10个工具**：推荐 `composed` 模式
+- **中型项目 10-50个工具**：两种模式都可以，看团队偏好
+- **大型项目 > 50个工具**：推荐 `routed` 模式
+- **团队协作开发**：推荐 `routed` 模式
+- **快速原型开发**：推荐 `composed` 模式
+
 ### 如何部署到生产环境？
 
 ```bash
@@ -173,14 +245,16 @@ uvx mcp-modelservice-sdk package --source-path /path/to/your/code --output my-se
 
 # 将生成的 zip 文件上传到服务器，然后：
 unzip my-service.zip
-cd my-service
-python main.py  # 启动生产服务
+cd my-service/project
+./start.sh  # 启动生产服务
 ```
 
 
 ## 📚 更多资源
 
 - [完整文档](docs/README.md)
+- [架构设计指南](docs/architecture.md)
+- [最佳实践](docs/best-practices.md)
 
 
 ## 💖 贡献与反馈

@@ -27,9 +27,6 @@ chmod +x start.sh
 
 # 启动服务
 ./start.sh
-
-# 或手动运行
-python main.py
 ```
 
 服务将在以下地址可用：**{service_url_example}**
@@ -61,8 +58,7 @@ python main.py
 
 ### 使用浏览器界面
 
-1. **MCP Inspector**：下载并使用 MCP Inspector
-2. **交互式测试**：访问 `{service_url_example}/mcp` 进行直接测试
+1. **交互式测试**：访问 `{service_url_example}/mcp` 进行直接测试
 
 ### 使用 Python 客户端
 
@@ -129,7 +125,6 @@ LOG_LEVEL=INFO
 ```
 {package_name}/
 ├── project/
-│   ├── main.py              # 服务入口点
 │   ├── start.sh             # 启动脚本
 │   ├── README.md            # 此文档
 │   ├── {source_structure}   # 您的原始代码结构
@@ -152,6 +147,14 @@ EXPOSE 8080
 
 CMD ["python", "main.py"]
 ```
+
+### 云部署
+
+该服务兼容：
+- **AWS Lambda**：通过无服务器适配器
+- **Google Cloud Run**：可容器化
+- **Azure 容器实例**：直接部署
+
 ## 💡 故障排除
 
 ### 服务无法启动？
@@ -184,8 +187,6 @@ CMD ["python", "main.py"]
 ### 监控
 
 在以下位置监控您的服务健康状况：
-- **健康检查**：`{service_url_example}/health`
-- **指标**：`{service_url_example}/metrics`（如果启用）
 - **日志**：检查控制台输出或日志文件
 
 ## 📞 支持与资源

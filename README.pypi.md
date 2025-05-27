@@ -66,10 +66,10 @@ mcp-modelservice package --source-path ./my_code --output my-service.zip
 # Extract and deploy
 unzip my-service.zip
 cd my-service/project
-python main.py
+./start.sh
 ```
 
-## 🏗️ How It Works
+## ��️ How It Works
 
 The SDK automatically:
 - **Discovers** all functions in your Python files
@@ -77,6 +77,81 @@ The SDK automatically:
 - **Generates** REST endpoints and documentation
 - **Packages** everything into deployable services
 - **Provides** interactive testing interfaces
+- **Local Development**: Direct execution with `./start.sh`
+
+## 🏛️ Architecture Modes
+
+Choose the architecture that best fits your project needs:
+
+### 📋 Composed Mode (Recommended)
+
+**How it works**:
+- Creates one main FastMCP instance as the "host"
+- Each Python file gets its own FastMCP sub-instance
+- All sub-instances are mounted to the main instance with separators for tool distinction
+
+**Benefits**:
+- ✅ **Unified Access**: All tools accessible through a single endpoint
+- ✅ **Simplified Client**: Clients only need to connect to one address
+- ✅ **Resource Efficiency**: Better resource utilization and management
+- ✅ **Namespace Management**: Automatic tool naming with separators ("+", "_", ".")
+
+**Best for**:
+- Applications requiring unified API access
+- Tools that work together cooperatively
+- Simplified client integration
+- Small to medium-sized projects or prototypes
+
+**Usage**:
+```bash
+# Using composed mode (default)
+mcp-modelservice run --source-path ./my_tools --mode composed
+
+# Access: http://localhost:8080/mcp-server/mcp
+# Tools: tool_file1_add, tool_file2_calculate, etc.
+```
+
+### 🔀 Routed Mode
+
+**How it works**:
+- Each Python file gets its own independent FastMCP instance
+- Each instance gets its own dedicated route path
+- Routes are auto-generated based on file directory structure
+
+**Benefits**:
+- ✅ **Module Isolation**: Each file module is completely independent
+- ✅ **Microservices Architecture**: Follows microservices design principles
+- ✅ **Independent Deployment**: Manage and scale each module separately
+- ✅ **Clear Separation**: Well-defined boundaries between different functionality
+
+**Best for**:
+- Large projects or enterprise applications
+- Modular deployment and management needs
+- Team collaboration with different people maintaining different modules
+- Independent scaling of specific functionalities
+
+**Usage**:
+```bash
+# Using routed mode
+mcp-modelservice run --source-path ./my_tools --mode routed
+
+# Access endpoints:
+# http://localhost:8080/math_tools - Math utilities
+# http://localhost:8080/text_tools - Text processing
+# http://localhost:8080/data_tools - Data manipulation
+```
+
+### 🆚 Mode Comparison
+
+| Feature | Composed Mode | Routed Mode |
+|---------|---------------|-------------|
+| **Access Pattern** | Single endpoint | Multiple endpoints |
+| **Tool Naming** | Auto-prefixed | Original names |
+| **Resource Usage** | Lower | Higher |
+| **Deployment Complexity** | Simple | Medium |
+| **Scalability** | Vertical scaling | Horizontal scaling |
+| **Best Project Size** | Small-Medium | Large |
+| **Team Collaboration** | Simple projects | Complex/distributed teams |
 
 ### Architecture Modes
 
@@ -86,7 +161,7 @@ The SDK automatically:
 ## 🌐 Deployment Options
 
 Deploy anywhere Python runs:
-- **Local Development**: Direct execution with `python main.py`
+- **Local Development**: Direct execution with `./start.sh`
 - **Docker**: Pre-configured Dockerfile included
 - **Cloud Platforms**: Compatible with Heroku, AWS Lambda, Google Cloud Run, Azure
 - **Traditional Servers**: Standard WSGI/ASGI deployment
@@ -132,6 +207,7 @@ result = await client.call_tool("add_numbers", {"a": 5, "b": 3})
 | `--port` | Service port | 8080 |
 | `--host` | Service host | 127.0.0.1 |
 | `--mcp-name` | Service name | Auto-generated |
+| `--mode` | Architecture mode (composed/routed) | composed |
 
 ### Environment Variables
 ```bash

@@ -27,9 +27,6 @@ chmod +x start.sh
 
 # Start the service
 ./start.sh
-
-# Or run manually
-python main.py
 ```
 
 The service will be available at: **{service_url_example}**
@@ -61,8 +58,7 @@ After startup, visit the interactive testing page:
 
 ### Using Browser Interface
 
-1. **MCP Inspector**: Download and use MCP Inspector
-2. **Interactive Testing**: Visit `{service_url_example}/mcp` for direct testing
+1. **Interactive Testing**: Visit `{service_url_example}/mcp` for direct testing
 
 ### Using Python Client
 
@@ -129,7 +125,6 @@ Your service follows this organization:
 ```
 {package_name}/
 ├── project/
-│   ├── main.py              # Service entry point
 │   ├── start.sh             # Startup script
 │   ├── README.md            # This documentation
 │   ├── {source_structure}   # Your original code structure
@@ -156,7 +151,6 @@ CMD ["python", "main.py"]
 ### Cloud Deployment
 
 The service is compatible with:
-- **Heroku**: Use the included `Procfile`
 - **AWS Lambda**: With serverless adapters
 - **Google Cloud Run**: Ready for containerization
 - **Azure Container Instances**: Direct deployment
@@ -193,8 +187,6 @@ The service is compatible with:
 ### Monitoring
 
 Monitor your service health at:
-- **Health check**: `{service_url_example}/health`
-- **Metrics**: `{service_url_example}/metrics` (if enabled)
 - **Logs**: Check console output or log files
 
 ## 📞 Support & Resources

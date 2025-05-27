@@ -5,7 +5,7 @@ derived from its directory structure.
 """
 from pydantic import AnyUrl
 import pydantic
-from .discovery import discover_py_files, discover_functions  # Relative import
+from .discovery import discover_py_files, discover_functions, _load_module_from_path  # Added _load_module_from_path import
 
 import inspect
 import logging
@@ -15,7 +15,7 @@ import re
 import sys
 from typing import Any, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING, Union
 from contextlib import asynccontextmanager, AsyncExitStack
-
+from fastmcp.server.http import create_streamable_http_app 
 from starlette.applications import Starlette
 from starlette.routing import Mount
 from starlette.middleware import Middleware
@@ -26,6 +26,7 @@ class MockFastMCP:
     """Mock FastMCP class for use when real FastMCP is not available."""
     def __init__(self, **kwargs):
         self.name = kwargs.get("name", "MockFastMCP")
+        self.instructions = kwargs.get("instructions", None)
         self.tools = {}
     
     def tool(self, name=None):
@@ -317,6 +318,31 @@ def discover_and_group_functions(
     return functions_by_file, base_dir
 
 
+def _get_module_docstring(file_path: pathlib.Path) -> Optional[str]:
+    """
+    Extract the module docstring from a Python file.
+    
+    Args:
+        file_path: Path to the Python file
+        
+    Returns:
+        The module docstring if found, None otherwise
+    """
+    try:
+        module = _load_module_from_path(file_path)
+        if module and module.__doc__:
+            # Clean up the docstring - remove leading/trailing whitespace and normalize newlines
+            docstring = inspect.cleandoc(module.__doc__)
+            logger.debug(f"Extracted docstring from {file_path}: {docstring[:100]}...")
+            return docstring
+        else:
+            logger.debug(f"No docstring found in {file_path}")
+            return None
+    except Exception as e:
+        logger.warning(f"Error extracting docstring from {file_path}: {e}")
+        return None
+
+
 def create_mcp_instances(
     functions_by_file: Dict[pathlib.Path, List[Tuple[Callable[..., Any], str]]],
     base_dir: pathlib.Path,
@@ -345,8 +371,17 @@ def create_mcp_instances(
         file_specific_name = str(relative_path).replace(os.sep, "_").replace(".py", "")
         instance_name = f"{file_specific_name}"
 
+        # Extract the module docstring to use as instructions
+        instructions = _get_module_docstring(file_path)
+        if instructions:
+            logger.info(f"Using module docstring as instructions for FastMCP instance '{instance_name}'")
+        else:
+            logger.info(f"No module docstring found for '{instance_name}', using default instructions")
+            # Default instructions based on the file path
+            instructions = f"MCP server for {relative_path} functionality"
+
         logger.info(f"Creating FastMCP instance '{instance_name}' for {file_path}")
-        file_mcp: FastMCPType = FastMCP(name=instance_name)
+        file_mcp: FastMCPType = FastMCP(name=instance_name, instructions=instructions)
 
         # Register all functions from this file as tools
         tools_registered = 0
@@ -390,8 +425,12 @@ def create_mcp_application(
     """
     Creates a Starlette application with multiple FastMCP instances based on directory structure.
     Each Python file will be given its own FastMCP instance mounted at a path derived from its location.
-    Uses FastMCP's server composition feature for cleaner mounting.
-
+    Module docstrings from each file will be used as instructions for the corresponding FastMCP instance.
+    
+    There are two modes of operation:
+    1. "composed" - Uses FastMCP's server composition feature for cleaner mounting.
+    2. "routed" - Mount each file to a different route
+    
     Args:
         source_path_str: Path to the Python file or directory containing functions.
         target_function_names: Optional list of function names to expose. If None, all are exposed.
