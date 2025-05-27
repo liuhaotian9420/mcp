@@ -149,7 +149,9 @@ def discover_functions(
                 logger.debug(f"Found member: {name}, type: {type(member).__name__}")
                 # Only include functions defined in this module (not imported)
                 if inspect.isfunction(member):
-                    logger.debug(f"Member {name} is a function. Module: {member.__module__}, Expected: {module.__name__}")
+                    logger.debug(
+                        f"Member {name} is a function. Module: {member.__module__}, Expected: {module.__name__}"
+                    )
                     if member.__module__ == module.__name__:
                         # Skip private functions (starting with underscore)
                         if name.startswith("_") and not (
@@ -161,12 +163,16 @@ def discover_functions(
                             continue
 
                         if not function_name_set or name in function_name_set:
-                            logger.debug(f"Adding function {name} to discovered functions")
+                            logger.debug(
+                                f"Adding function {name} to discovered functions"
+                            )
                             module_functions.append((member, name))
                             if function_name_set and name in function_name_set:
                                 function_name_set.remove(name)
                     else:
-                        logger.debug(f"Skipping function {name} because it's not defined in this module")
+                        logger.debug(
+                            f"Skipping function {name} because it's not defined in this module"
+                        )
 
             if module_functions:
                 logger.info(f"Found {len(module_functions)} function(s) in {file_path}")

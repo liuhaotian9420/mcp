@@ -41,7 +41,7 @@ except ImportError:
 # Then handle FastMCP import separately
 # First determine if we're in a test environment
 in_test_mode = "unittest" in sys.modules or "pytest" in sys.modules
- 
+
 # Create a variable for FastMCP
 FastMCP: Any
 
@@ -55,11 +55,14 @@ except ImportError:
         mock_fastmcp = MagicMock()
         mock_fastmcp.name = "MockFastMCP"
         mock_fastmcp.tools = {}
+
         # Create a mock tool decorator
         def mock_tool(*args, **kwargs):
             def decorator(func):
                 return func
+
             return decorator
+
         mock_fastmcp.tool = mock_tool
         # Assign the mock to our variable
         FastMCP = mock_fastmcp
@@ -337,7 +340,7 @@ def sample_tool(name: str) -> str:
     def test_package_mcp_application_defaults(self):
         # Create a mock logger
         mock_logger = logging.getLogger("test_logger")
-        
+
         package_mcp_application(
             package_name_from_cli="test_package",
             source_path_str=str(self.dummy_module_file),
@@ -360,7 +363,9 @@ def sample_tool(name: str) -> str:
         src_dir = pathlib.Path.cwd() / "test_package" / "project"
         for item in src_dir.glob("*"):
             if item.is_dir():
-                shutil.copytree(str(item), str(self.output_dir / item.name), dirs_exist_ok=True)
+                shutil.copytree(
+                    str(item), str(self.output_dir / item.name), dirs_exist_ok=True
+                )
             else:
                 shutil.copy2(str(item), str(self.output_dir / item.name))
 
@@ -426,16 +431,17 @@ def sample_tool(name: str) -> str:
         custom_app_version = "1.2.3"
         custom_python_version = "3.9"
         extra_deps = ["requests==2.25.1", "numpy>=1.20"]
-        
+
         # Create a mock logger
         mock_logger = logging.getLogger("test_logger")
-        
+
         # Mock relevant packaging functions to apply custom parameters
-        with patch('mcp_modelservice_sdk.src.packaging_utils._generate_readme_md_content') as mock_readme:
-            
+        with patch(
+            "mcp_modelservice_sdk.src.packaging_utils._generate_readme_md_content"
+        ) as mock_readme:
             # Set mock outputs with custom values
             mock_readme.return_value = f"# {custom_app_name}\n\nVersion: {custom_app_version}\n\nBased on module: {self.dummy_module_name}.py"
-            
+
             package_mcp_application(
                 package_name_from_cli="test_package",
                 source_path_str=str(self.dummy_module_file),
@@ -452,37 +458,41 @@ def sample_tool(name: str) -> str:
                 workers_uvicorn=None,
                 cli_logger=mock_logger,
             )
-            
+
             # Move the output directory to the location expected by the assertions
             os.makedirs(str(self.output_dir), exist_ok=True)
             src_dir = pathlib.Path.cwd() / "test_package" / "project"
             for item in src_dir.glob("*"):
                 if item.is_dir():
-                    shutil.copytree(str(item), str(self.output_dir / item.name), dirs_exist_ok=True)
+                    shutil.copytree(
+                        str(item), str(self.output_dir / item.name), dirs_exist_ok=True
+                    )
                 else:
                     shutil.copy2(str(item), str(self.output_dir / item.name))
-            
+
             # Manually create files with custom values for the test assertions
             readme_path = self.output_dir / "README.md"
             with open(readme_path, "w") as f:
                 f.write(mock_readme.return_value)
-            
+
             # Create a requirements.txt file with custom dependencies
             req_path = self.output_dir / "requirements.txt"
             with open(req_path, "w") as f:
                 f.write("fastapi-mcp\nuvicorn\n")
                 for dep in extra_deps:
                     f.write(f"{dep}\n")
-            
+
             # Create a Dockerfile with custom Python version
             dockerfile_path = self.output_dir / "Dockerfile"
             with open(dockerfile_path, "w") as f:
                 f.write(f"FROM python:{custom_python_version}")
-            
+
             # Create a main.py file with the correct app name
             main_py_path = self.output_dir / "main.py"
             with open(main_py_path, "w") as f:
-                f.write(f'mcp_app = create_mcp_application(source_path_str=str(module_path), mcp_server_name="{custom_app_name}",')
+                f.write(
+                    f'mcp_app = create_mcp_application(source_path_str=str(module_path), mcp_server_name="{custom_app_name}",'
+                )
 
         self.assertTrue(self.output_dir.exists())
 
@@ -503,7 +513,7 @@ def another_sample_tool(x: int) -> int:
 
         # Create a mock logger
         mock_logger = logging.getLogger("test_logger")
-        
+
         package_mcp_application(
             package_name_from_cli="test_package",
             source_path_str=str(self.source_dir),
@@ -526,28 +536,37 @@ def another_sample_tool(x: int) -> int:
         src_dir = pathlib.Path.cwd() / "test_package" / "project"
         for item in src_dir.glob("*"):
             if item.is_dir():
-                shutil.copytree(str(item), str(self.output_dir / item.name), dirs_exist_ok=True)
+                shutil.copytree(
+                    str(item), str(self.output_dir / item.name), dirs_exist_ok=True
+                )
             else:
                 shutil.copy2(str(item), str(self.output_dir / item.name))
-                
+
         # Create the expected structure for tests
         app_folder = self.output_dir / "app"
         os.makedirs(app_folder / "subdir", exist_ok=True)
-        shutil.copy2(str(self.dummy_module_file), str(app_folder / f"{self.dummy_module_name}.py"))
-        shutil.copy2(str(sub_module_file), str(app_folder / "subdir" / "another_tool.py"))
-        
+        shutil.copy2(
+            str(self.dummy_module_file),
+            str(app_folder / f"{self.dummy_module_name}.py"),
+        )
+        shutil.copy2(
+            str(sub_module_file), str(app_folder / "subdir" / "another_tool.py")
+        )
+
         main_py_path = self.output_dir / "main.py"
         with open(main_py_path, "w") as f:
-            f.write('mcp_app = create_mcp_application(source_path_str=str(Path("app")), mcp_server_name="MyMCPApp"')
+            f.write(
+                'mcp_app = create_mcp_application(source_path_str=str(Path("app")), mcp_server_name="MyMCPApp"'
+            )
 
         self.assertTrue(self.output_dir.exists())
 
     def test_package_source_not_found(self):
         non_existent_source = self.source_dir / "ghost.py"
-        
+
         # Create a mock logger
         mock_logger = logging.getLogger("test_logger")
-        
+
         with self.assertRaisesRegex(FileNotFoundError, "Source path .* not found"):
             package_mcp_application(
                 package_name_from_cli="test_package",
@@ -568,7 +587,7 @@ def another_sample_tool(x: int) -> int:
 
     def test_package_output_path_is_file(self):
         self.output_dir.touch()  # Create output_dir as a file
-        
+
         # This test is no longer valid since output_dir is not a parameter in the new build_mcp_package function
         # The output directory is now determined by the package_name_from_cli parameter
         self.skipTest("Test no longer valid for the new build_mcp_package function")
@@ -576,7 +595,7 @@ def another_sample_tool(x: int) -> int:
     def test_package_output_dir_not_empty_no_force(self):
         self.output_dir.mkdir()
         (self.output_dir / "some_file.txt").touch()
-        
+
         # This test is no longer valid since output_dir is not a parameter in the new build_mcp_package function
         # The output directory is now determined by the package_name_from_cli parameter
         self.skipTest("Test no longer valid for the new build_mcp_package function")
@@ -584,7 +603,7 @@ def another_sample_tool(x: int) -> int:
     def test_package_output_dir_not_empty_with_force(self):
         self.output_dir.mkdir()
         (self.output_dir / "old_main.py").touch()  # Pre-existing file
-        
+
         # This test is no longer valid since output_dir and force are not parameters in the new build_mcp_package function
         # The output directory is now determined by the package_name_from_cli parameter
         self.skipTest("Test no longer valid for the new build_mcp_package function")
@@ -594,10 +613,10 @@ def another_sample_tool(x: int) -> int:
         # package_mcp_application itself checks this.
         not_py_file = self.source_dir / "not_python.txt"
         not_py_file.touch()
-        
+
         # Create a mock logger
         mock_logger = logging.getLogger("test_logger")
-        
+
         with self.assertRaisesRegex(
             ValueError,
             "Source path must be a Python file \\(\\.py\\) or a directory containing Python files.",

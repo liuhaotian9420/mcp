@@ -17,6 +17,7 @@ sys.path.append(os.path.join(project_root, "src"))
 # Import required modules
 try:
     from mcp_modelservice_sdk.src.app_builder import _get_route_from_path
+
     imports_successful = True
 except ImportError:
     print("Could not import required modules. Tests will be skipped.")
@@ -32,12 +33,12 @@ class TestAppBuilderBasic(unittest.TestCase):
         # Create test paths using relative paths to avoid platform-specific issues
         base_dir = pathlib.Path(os.path.dirname(__file__))
         file_path = base_dir / "sample_tools.py"
-        
+
         # Get the route
         route = _get_route_from_path(file_path, base_dir)
-        
+
         # Extract just the last part to avoid path separator issues
-        result_parts = route.split('/')
+        result_parts = route.split("/")
         self.assertEqual(result_parts[-1], "sample_tools")
 
     def test_get_route_from_init_file(self):
@@ -45,12 +46,12 @@ class TestAppBuilderBasic(unittest.TestCase):
         # Create test paths using relative paths
         base_dir = pathlib.Path(os.path.dirname(__file__))
         file_path = base_dir / "nested" / "__init__.py"
-        
+
         # Get the route
         route = _get_route_from_path(file_path, base_dir)
-        
+
         # Extract just the last part to avoid path separator issues
-        result_parts = route.split('/')
+        result_parts = route.split("/")
         self.assertEqual(result_parts[-1], "nested")
 
     @unittest.skip("This test requires additional setup")

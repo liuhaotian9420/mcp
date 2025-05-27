@@ -17,6 +17,7 @@ sys.path.append(os.path.join(project_root, "src"))
 
 try:
     from mcp_modelservice_sdk.src.packaging_utils import _copy_source_code
+
     imports_successful = True
 except ImportError as e:
     print(f"ImportError: {e}")
@@ -27,7 +28,7 @@ except ImportError as e:
 @unittest.skipIf(not imports_successful, "Required modules could not be imported")
 class TestPackagingUtils(unittest.TestCase):
     """Basic tests for packaging utilities."""
-    
+
     def setUp(self):
         """Set up test environment."""
         # Create a temporary directory for our test package
@@ -77,9 +78,11 @@ def nested_func():
 
         # Verify the copy was attempted
         mock_copy2.assert_called_once()
-        
+
         # Check that the result is as expected (the relative path to the copied file)
-        self.assertTrue(result.endswith("test_module.py") or result.endswith("test_module"))
+        self.assertTrue(
+            result.endswith("test_module.py") or result.endswith("test_module")
+        )
 
     @patch("shutil.copytree")
     @patch("shutil.rmtree")
@@ -98,35 +101,37 @@ def nested_func():
 
         # Verify the copy was attempted
         mock_copytree.assert_called_once()
-        
+
         # Check that the result is as expected (the relative path to the copied directory)
-        self.assertTrue(os.path.basename(result) == os.path.basename(self.temp_dir.name))
+        self.assertTrue(
+            os.path.basename(result) == os.path.basename(self.temp_dir.name)
+        )
 
     def test_template_rendering(self):
         """Test basic template rendering concept."""
         # This is a simple test to demonstrate template rendering without dependencies
-        
+
         # Create a mock template file
         template_path = self.temp_dir / "template.txt"
         template_content = "Hello, {{name}}! Welcome to {{project}}."
-        
+
         with open(template_path, "w") as f:
             f.write(template_content)
-            
+
         # Read the template
         with open(template_path, "r") as f:
             content = f.read()
-        
+
         # Simple replace function to simulate template rendering
         def render(template, **kwargs):
             result = template
             for key, value in kwargs.items():
                 result = result.replace("{{" + key + "}}", value)
             return result
-        
+
         # Render the template
         rendered = render(content, name="User", project="MCP")
-        
+
         # Check the result
         self.assertEqual(rendered, "Hello, User! Welcome to MCP.")
 

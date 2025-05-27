@@ -1,6 +1,7 @@
 """
 Path utilities for the MCP Modelservice SDK.
 """
+
 import os
 import pathlib
 import logging
@@ -12,10 +13,10 @@ logger = logging.getLogger(__name__)
 def normalize_path(path_str: str) -> str:
     """
     Normalize a path string to handle both relative and absolute paths.
-    
+
     Args:
         path_str: Path string to normalize
-        
+
     Returns:
         Normalized absolute path string
     """
@@ -43,7 +44,7 @@ def validate_source_path(source_path: Optional[str], logger: logging.Logger) -> 
     if source_path is None:
         logger.error("Source path is None")
         return False
-        
+
     path_obj = pathlib.Path(source_path)
 
     # Check if the path exists
@@ -64,4 +65,4 @@ def validate_source_path(source_path: Optional[str], logger: logging.Logger) -> 
             logger.error(f"No Python files found in directory: {path_obj.absolute()}")
             return False
 
-    return True 
+    return True

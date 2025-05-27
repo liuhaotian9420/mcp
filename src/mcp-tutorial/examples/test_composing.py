@@ -47,26 +47,30 @@
 # if __name__ == "__main__":
 #     uvicorn.run(app, host="127.0.0.1", port=8000)
 from starlette.applications import Starlette
-from starlette.routing      import Mount
-from contextlib             import asynccontextmanager, AsyncExitStack
+from starlette.routing import Mount
+from contextlib import asynccontextmanager, AsyncExitStack
 import uvicorn
-from fastmcp                import FastMCP
+from fastmcp import FastMCP
 
 # 1) Define two FastMCP services (stateless-HTTP mode)
-weather_mcp  = FastMCP(name="WeatherService",  stateless_http=True)
+weather_mcp = FastMCP(name="WeatherService", stateless_http=True)
 calendar_mcp = FastMCP(name="CalendarService", stateless_http=True)
+
 
 @weather_mcp.tool()
 def get_forecast(city: str) -> dict:
     return {"city": city, "forecast": "Sunny"}
 
+
 @calendar_mcp.tool()
 def add_event(title: str, date: str) -> str:
     return f"Event '{title}' scheduled on {date}"
 
+
 # 2) Turn each into its own Starlette sub-app at path="/mcp"
-weather_app  = weather_mcp.http_app(path="/mcp")
+weather_app = weather_mcp.http_app(path="/mcp")
 calendar_app = calendar_mcp.http_app(path="/mcp")
+
 
 # 3) Build a combined lifespan that enters each sub-app’s lifespan in turn
 def make_combined_lifespan(*subapps):
@@ -77,19 +81,20 @@ def make_combined_lifespan(*subapps):
                 # each subapp has a .lifespan() async context manager
                 await stack.enter_async_context(sa.router.lifespan_context(scope))
             yield
+
     return lifespan
+
 
 # 4) Create one Starlette parent, mount each service, and wire lifespan
 app = Starlette(
     debug=True,
     routes=[
-        Mount("/mcp/weather",  app=weather_app),
+        Mount("/mcp/weather", app=weather_app),
         Mount("/mcp/calendar", app=calendar_app),
     ],
-    lifespan=make_combined_lifespan(weather_app, calendar_app)
+    lifespan=make_combined_lifespan(weather_app, calendar_app),
 )
 
 # 5) Run under Uvicorn as usual
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8000)
-

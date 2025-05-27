@@ -9,7 +9,7 @@ import sys
 from typer.testing import CliRunner
 
 # Create mock implementations for test environment
-MockTransformationError = type('TransformationError', (Exception,), {})
+MockTransformationError = type("TransformationError", (Exception,), {})
 
 # Assuming the tests directory is at the same level as the src directory
 # or the package is installed.
@@ -18,6 +18,7 @@ try:
     from mcp_modelservice_sdk.cli import (
         app as cli_app,
     )  # 'app' is the Typer instance in cli.py
+
     # Also import core elements that might be checked or mocked if CLI calls them directly
     try:
         from mcp_modelservice_sdk.src.app_builder import TransformationError
@@ -30,10 +31,14 @@ except ImportError as e:
     )
     # If your structure is different, you might need to adjust sys.path here:
     import os
+
     SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-    sys.path.append(os.path.dirname(SCRIPT_DIR)) # Add parent of tests dir (e.g. project root)
+    sys.path.append(
+        os.path.dirname(SCRIPT_DIR)
+    )  # Add parent of tests dir (e.g. project root)
     try:
         from mcp_modelservice_sdk.cli import app as cli_app
+
         try:
             from mcp_modelservice_sdk.src.app_builder import TransformationError
         except ImportError:
@@ -43,11 +48,13 @@ except ImportError as e:
         print("WARNING: Skipping tests due to import errors")
         # Define a minimal implementation for tests to run
         import typer
+
         cli_app = typer.Typer()
-        
+
         @cli_app.command()
         def run():
             pass
+
 
 runner = CliRunner()
 
@@ -65,7 +72,9 @@ def a_func(x: int) -> int:
     def tearDown(self):
         shutil.rmtree(self.test_dir)
 
-    @unittest.skip("Skipping due to CLI argument changes - source-path is in main callback")
+    @unittest.skip(
+        "Skipping due to CLI argument changes - source-path is in main callback"
+    )
     @patch("mcp_modelservice_sdk.cli.uvicorn.run")
     @patch("mcp_modelservice_sdk.cli.create_mcp_application")
     def test_run_successful_minimum_args(self, mock_create_app, mock_uvicorn_run):
@@ -73,9 +82,12 @@ def a_func(x: int) -> int:
         mock_create_app.return_value = mock_starlette_app
 
         # Suppress stdout/stderr to avoid cluttering test output
-        with patch('sys.stdout', new=io.StringIO()), patch('sys.stderr', new=io.StringIO()):
+        with (
+            patch("sys.stdout", new=io.StringIO()),
+            patch("sys.stderr", new=io.StringIO()),
+        ):
             # Set the file to exist for validation checks
-            with patch('pathlib.Path.exists', return_value=True):
+            with patch("pathlib.Path.exists", return_value=True):
                 result = runner.invoke(
                     cli_app, ["run", "--source-path", str(self.dummy_source_file)]
                 )
@@ -92,16 +104,21 @@ def a_func(x: int) -> int:
         # This test is skipped until CLI arguments are fixed
         pass
 
-    @unittest.skip("Skipping due to CLI argument changes - source-path is in main callback")
+    @unittest.skip(
+        "Skipping due to CLI argument changes - source-path is in main callback"
+    )
     @patch("mcp_modelservice_sdk.cli.uvicorn.run")
     @patch("mcp_modelservice_sdk.cli.create_mcp_application")
     def test_run_mw_service_override(self, mock_create_app, mock_uvicorn_run):
         mock_create_app.return_value = MagicMock()
-        
+
         # Suppress stdout/stderr to avoid cluttering test output
-        with patch('sys.stdout', new=io.StringIO()), patch('sys.stderr', new=io.StringIO()):
+        with (
+            patch("sys.stdout", new=io.StringIO()),
+            patch("sys.stderr", new=io.StringIO()),
+        ):
             # Set the file to exist for validation checks
-            with patch('pathlib.Path.exists', return_value=True):
+            with patch("pathlib.Path.exists", return_value=True):
                 result = runner.invoke(
                     cli_app,
                     [
@@ -114,8 +131,10 @@ def a_func(x: int) -> int:
                         "1234",
                     ],
                 )
-                
-                self.assertEqual(result.exit_code, 0, f"CLI failed with: {result.stdout}")
+
+                self.assertEqual(
+                    result.exit_code, 0, f"CLI failed with: {result.stdout}"
+                )
                 # Just verify that uvicorn.run was called
                 mock_uvicorn_run.assert_called_once()
 
@@ -123,14 +142,17 @@ def a_func(x: int) -> int:
     def test_run_transformation_error(self, mock_create_app):
         mock_create_app.side_effect = TransformationError("Test transformation failed")
 
-        # Suppress output for cleaner test run 
-        with patch('sys.stdout', new=io.StringIO()), patch('sys.stderr', new=io.StringIO()):
+        # Suppress output for cleaner test run
+        with (
+            patch("sys.stdout", new=io.StringIO()),
+            patch("sys.stderr", new=io.StringIO()),
+        ):
             # Mock exists to pass path validation
-            with patch('pathlib.Path.exists', return_value=True):
+            with patch("pathlib.Path.exists", return_value=True):
                 result = runner.invoke(
                     cli_app, ["run", "--source-path", str(self.dummy_source_file)]
                 )
-                
+
                 # Just check that the command failed with non-zero exit code
                 self.assertNotEqual(result.exit_code, 0)
 

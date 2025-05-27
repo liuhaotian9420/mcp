@@ -162,7 +162,7 @@ def _generate_start_sh_content(
 
     # Prepare CLI flags - collect non-empty flags
     cli_flags = []
-    
+
     # CORS settings
     if cors_enabled:
         cli_flags.append("--cors-enabled")
@@ -194,13 +194,13 @@ def _generate_start_sh_content(
     # Handle transport configuration flags
     if stateless_http:
         cli_flags.append("--stateless-http")
-    
+
     if json_response:
         cli_flags.append("--json-response")
 
     # Command options
     run_options = []
-    
+
     # Handle reload flag
     if reload_dev_mode:
         run_options.append("--reload")
@@ -212,7 +212,7 @@ def _generate_start_sh_content(
     # Join flags with proper line continuations
     cli_flags_str = " \\\n        ".join(cli_flags) if cli_flags else ""
     run_options_str = " \\\n        ".join(run_options) if run_options else ""
-    
+
     # Handle run_options with continuation - only add \ and newline if there are run_options
     if run_options_str:
         run_options_with_continuation = f" \\\n        {run_options_str}"
@@ -310,9 +310,7 @@ def _generate_readme_zh_md_content(
             tool_doc_md_parts.append(
                 f"**函数签名:**\n```python\n{tool['signature']}\n```\n"
             )
-            tool_doc_md_parts.append(
-                f"**描述:**\n```\n{tool['docstring']}\n```\n---"
-            )
+            tool_doc_md_parts.append(f"**描述:**\n```\n{tool['docstring']}\n```\n---")
     tool_documentation_section = "\n".join(tool_doc_md_parts)
 
     template_str = _read_template("README_zh.md.template")

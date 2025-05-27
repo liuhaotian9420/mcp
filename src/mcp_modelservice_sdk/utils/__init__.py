@@ -8,8 +8,8 @@ from .logging_utils import setup_logging, validate_log_level
 
 __all__ = [
     "TransformationError",
-    "normalize_path", 
+    "normalize_path",
     "validate_source_path",
     "setup_logging",
-    "validate_log_level"
-] 
+    "validate_log_level",
+]

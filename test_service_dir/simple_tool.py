@@ -1,7 +1,9 @@
 """
 This is a simple tool that adds two numbers.
 """
-def add_two_numbers(a:int, b:int) -> int:
+
+
+def add_two_numbers(a: int, b: int) -> int:
     """_summary_
 
     Args:
@@ -11,4 +13,4 @@ def add_two_numbers(a:int, b:int) -> int:
     Returns:
         int: _description_
     """
-    return a+b
+    return a + b

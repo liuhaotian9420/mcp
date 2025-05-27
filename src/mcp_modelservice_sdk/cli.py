@@ -42,12 +42,13 @@ def _import_core_modules():
         try:
             # Create a minimal mock core module for testing if actual import fails
             import types
+
             mock_core = types.ModuleType("mock_core")
             setattr(mock_core, "create_mcp_application", lambda *args, **kwargs: None)
             setattr(mock_core, "build_mcp_package", lambda *args, **kwargs: None)
             setattr(mock_core, "TransformationError", Exception)
             setattr(mock_core, "_setup_logging", lambda *args, **kwargs: None)
-            
+
             # Check if we're running in a test environment with proper mocking
             logger.info("Running in test environment, returning mock core module")
             return mock_core
@@ -76,9 +77,10 @@ def _import_core_modules():
     # Additional import attempts with dynamically constructed paths
     try:
         import importlib.util
+
         # Try dynamically loading the module from absolute paths
         module_path = os.path.join(current_dir, "src", "core.py")
-        
+
         if os.path.exists(module_path):
             logger.debug(f"Attempting dynamic import from {module_path}")
             spec = importlib.util.spec_from_file_location("core_module", module_path)
@@ -243,6 +245,7 @@ class CommonOptions:
         self.stateless_http = stateless_http
         self.json_response = json_response
 
+
 def _validate_source_path(source_path: Optional[str], logger: logging.Logger) -> bool:
     """
     Validate that the source path exists and contains valid Python files.
@@ -257,7 +260,7 @@ def _validate_source_path(source_path: Optional[str], logger: logging.Logger) ->
     if source_path is None:
         logger.error("Source path is None")
         return False
-        
+
     path_obj = pathlib.Path(source_path)
 
     # Check if the path exists
@@ -376,7 +379,9 @@ def run(
         sys.exit(1)
 
     # processed_functions is now directly from common_opts, prepared by main callback
-    if common_opts.functions: # common_opts.functions is already the processed list or None
+    if (
+        common_opts.functions
+    ):  # common_opts.functions is already the processed list or None
         cli_logger.info(f"Targeting specific functions: {common_opts.functions}")
 
     # processed_cors_origins is now directly from common_opts, prepared by main callback
@@ -390,18 +395,24 @@ def run(
 
     # Validate configuration combinations
     if common_opts.enable_event_store and common_opts.json_response:
-        cli_logger.error("Event store can only be used with SSE mode (json_response=False). Please disable either event store or JSON response mode.")
+        cli_logger.error(
+            "Event store can only be used with SSE mode (json_response=False). Please disable either event store or JSON response mode."
+        )
         sys.exit(1)
 
     # Log transport configuration
     transport_mode = "stateless" if common_opts.stateless_http else "stateful"
     response_format = "JSON" if common_opts.json_response else "SSE"
-    cli_logger.info(f"Transport mode: {transport_mode}, Response format: {response_format}")
+    cli_logger.info(
+        f"Transport mode: {transport_mode}, Response format: {response_format}"
+    )
 
     # Log event store configuration
     if common_opts.enable_event_store:
         event_store_path_info = common_opts.event_store_path or "./mcp_event_store.db"
-        cli_logger.info(f"Event store will be enabled using SQLite database: {event_store_path_info}")
+        cli_logger.info(
+            f"Event store will be enabled using SQLite database: {event_store_path_info}"
+        )
     else:
         cli_logger.info("Event store will be disabled.")
 
@@ -439,12 +450,12 @@ def run(
         # Create the MCP application
         mcp_app = create_mcp_application(
             source_path_str=common_opts.source_path,
-            target_function_names=common_opts.functions, # Use directly from common_opts
+            target_function_names=common_opts.functions,  # Use directly from common_opts
             mcp_server_name=common_opts.mcp_name,
             mcp_server_root_path=common_opts.server_root,
             mcp_service_base_path=common_opts.mcp_base,
             cors_enabled=common_opts.cors_enabled,
-            cors_allow_origins=common_opts.cors_allow_origins, # Use directly from common_opts
+            cors_allow_origins=common_opts.cors_allow_origins,  # Use directly from common_opts
             mode=common_opts.mode.lower(),
             enable_event_store=common_opts.enable_event_store,
             event_store_path=common_opts.event_store_path,
@@ -452,7 +463,9 @@ def run(
             json_response=common_opts.json_response,
         )
 
-        if mcp_app is None and not has_fastmcp: # Redundant check for has_fastmcp as it exits earlier if not found
+        if (
+            mcp_app is None and not has_fastmcp
+        ):  # Redundant check for has_fastmcp as it exits earlier if not found
             cli_logger.error(
                 "Failed to create MCP application: FastMCP is not available"
             )
@@ -599,7 +612,9 @@ def package(
 
     # processed_functions is now directly from common_opts, prepared by main callback
     if common_opts.functions:
-        cli_logger.info(f"Targeting specific functions for package: {common_opts.functions}")
+        cli_logger.info(
+            f"Targeting specific functions for package: {common_opts.functions}"
+        )
 
     # processed_cors_origins and enabled status are now directly from common_opts
     if common_opts.cors_enabled:
@@ -611,32 +626,40 @@ def package(
 
     # Validate configuration combinations for packaging
     if common_opts.enable_event_store and common_opts.json_response:
-        cli_logger.error("Event store can only be used with SSE mode (json_response=False). Please disable either event store or JSON response mode.")
+        cli_logger.error(
+            "Event store can only be used with SSE mode (json_response=False). Please disable either event store or JSON response mode."
+        )
         sys.exit(1)
 
     # Log transport configuration for packaging
     transport_mode = "stateless" if common_opts.stateless_http else "stateful"
     response_format = "JSON" if common_opts.json_response else "SSE"
-    cli_logger.info(f"Package will use transport mode: {transport_mode}, Response format: {response_format}")
+    cli_logger.info(
+        f"Package will use transport mode: {transport_mode}, Response format: {response_format}"
+    )
 
     # Log event store configuration for packaging
     if common_opts.enable_event_store:
         event_store_path_info = common_opts.event_store_path or "./mcp_event_store.db"
-        cli_logger.info(f"Event store will be enabled in package using SQLite database: {event_store_path_info}")
+        cli_logger.info(
+            f"Event store will be enabled in package using SQLite database: {event_store_path_info}"
+        )
     else:
         cli_logger.info("Event store will be disabled in package.")
 
     try:
         build_mcp_package(
             package_name_from_cli=package_name,
-            source_path_str=common_opts.source_path, # Ensure this is not None
-            target_function_names=common_opts.functions, # Use directly
+            source_path_str=common_opts.source_path,  # Ensure this is not None
+            target_function_names=common_opts.functions,  # Use directly
             mcp_server_name=common_opts.mcp_name,
             mcp_server_root_path=common_opts.server_root,
             mcp_service_base_path=common_opts.mcp_base,
             log_level=common_opts.log_level,
             cors_enabled=common_opts.cors_enabled,
-            cors_allow_origins=common_opts.cors_allow_origins if common_opts.cors_allow_origins is not None else [], # Ensure list is passed
+            cors_allow_origins=common_opts.cors_allow_origins
+            if common_opts.cors_allow_origins is not None
+            else [],  # Ensure list is passed
             effective_host=effective_package_host,
             effective_port=effective_package_port,
             reload_dev_mode=package_reload,
@@ -719,30 +742,25 @@ def example(
 ):
     """
     Run an introductory example MCP service with arithmetic operations.
-    
+
     This command creates and runs a simple MCP service that demonstrates:
     - Basic arithmetic tools (add, subtract, multiply, divide)
     - Streamable HTTP transport
     - Optional MCP Inspector integration for visualization
-    
+
     The service runs on localhost:8080 and optionally launches the MCP Inspector
     for interactive testing and debugging.
     """
-    import tempfile
-    import subprocess
-    import time
-    import threading
-    import webbrowser
     from pathlib import Path
-    
+
     cli_logger.info("🚀 Starting MCP Modelservice SDK Example")
     cli_logger.info("This example demonstrates a simple arithmetic MCP service")
-    
+
     # Create temporary directory for example files
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
         example_file = temp_path / "arithmetic_example.py"
-        
+
         # Create the example server file
         example_content = '''"""
 Example MCP service with arithmetic operations using streamable HTTP transport.
@@ -821,13 +839,13 @@ if __name__ == "__main__":
     # Run with streamable HTTP transport on port 8080
     mcp.run(transport="streamable-http", host="127.0.0.1", port=8081, path="/mcp")
 '''
-        
+
         # Write the example file
         with open(example_file, "w", encoding="utf-8") as f:
             f.write(example_content)
-        
+
         cli_logger.info(f"📝 Created example service at: {example_file}")
-        
+
         # Function to run the MCP service
         def run_mcp_service():
             try:
@@ -836,29 +854,31 @@ if __name__ == "__main__":
                     [sys.executable, str(example_file)],
                     cwd=temp_dir,
                     capture_output=True,
-                    text=True
+                    text=True,
                 )
                 if result.returncode != 0:
                     cli_logger.error(f"MCP service failed: {result.stderr}")
             except Exception as e:
                 cli_logger.error(f"Error running MCP service: {e}")
-        
+
         # Function to run the MCP Inspector
         def run_mcp_inspector():
             if not with_inspector:
                 return
-                
+
             try:
-                cli_logger.info(f"🔍 Starting MCP Inspector on port {inspector_port}...")
+                cli_logger.info(
+                    f"🔍 Starting MCP Inspector on port {inspector_port}..."
+                )
                 # Wait a moment for the MCP service to start
                 time.sleep(3)
-                
+
                 # Set up environment variables for the inspector
                 inspector_env = os.environ.copy()
                 inspector_env["CLIENT_PORT"] = str(inspector_port)
                 # Add environment variable for the MCP service URL
-                inspector_env["MCP_SERVICE_URL"] = f"http://localhost:8081/mcp"
-                
+                inspector_env["MCP_SERVICE_URL"] = "http://localhost:8081/mcp"
+
                 # Set up the direct URL with query parameters for automatic connection
                 # This will make the inspector automatically connect to our service when it starts
                 inspector_url_with_params = (
@@ -866,68 +886,84 @@ if __name__ == "__main__":
                     f"?transport=streamable-http"
                     f"&serverUrl=http://localhost:8081/mcp"
                 )
-                
+
                 # Open the browser with the parameterized URL
-                cli_logger.info(f"🌐 Opening browser to MCP Inspector with direct connection at: {inspector_url_with_params}")
+                cli_logger.info(
+                    f"🌐 Opening browser to MCP Inspector with direct connection at: {inspector_url_with_params}"
+                )
                 try:
                     webbrowser.open(inspector_url_with_params)
                 except Exception as e:
                     cli_logger.warning(f"Could not open browser automatically: {e}")
-                
+
                 # Launch the inspector process
-                if os.name == 'nt':  # Windows
+                if os.name == "nt":  # Windows
                     result = subprocess.run(
                         "npx @modelcontextprotocol/inspector",
-                        env=inspector_env, 
+                        env=inspector_env,
                         cwd=temp_dir,
-                        shell=True
+                        shell=True,
                     )
                 else:  # macOS, Linux, etc.
                     result = subprocess.run(
                         ["npx", "@modelcontextprotocol/inspector"],
                         env=inspector_env,
-                        cwd=temp_dir
+                        cwd=temp_dir,
                     )
-                
+
                 if result.returncode != 0:
-                    cli_logger.warning(f"MCP Inspector exited with non-zero code: {result.returncode}")
-                    
+                    cli_logger.warning(
+                        f"MCP Inspector exited with non-zero code: {result.returncode}"
+                    )
+
             except FileNotFoundError:
-                cli_logger.error("❌ npx not found. Please install Node.js to use the MCP Inspector.")
-                cli_logger.info("You can still test the service directly at http://localhost:8081/mcp")
+                cli_logger.error(
+                    "❌ npx not found. Please install Node.js to use the MCP Inspector."
+                )
+                cli_logger.info(
+                    "You can still test the service directly at http://localhost:8081/mcp"
+                )
             except Exception as e:
                 cli_logger.error(f"Error running MCP Inspector: {e}")
-        
+
         try:
             # Start MCP service in a separate thread
             service_thread = threading.Thread(target=run_mcp_service, daemon=True)
             service_thread.start()
-            
+
             # Give the service a moment to start
             time.sleep(2)
-            
+
             cli_logger.info("✅ MCP service is running!")
             cli_logger.info("🌐 Service URL: http://localhost:8081/mcp")
             cli_logger.info("📚 Available tools: add, subtract, multiply, divide")
-            
+
             if with_inspector:
-                cli_logger.info(f"�� MCP Inspector will be launched on port {inspector_port}")
-                cli_logger.info("💡 The inspector provides a visual interface to test your MCP tools")
-                cli_logger.info(f"💡 It will automatically connect to your MCP service at http://localhost:8081/mcp")
-                
+                cli_logger.info(
+                    f"�� MCP Inspector will be launched on port {inspector_port}"
+                )
+                cli_logger.info(
+                    "💡 The inspector provides a visual interface to test your MCP tools"
+                )
+                cli_logger.info(
+                    "💡 It will automatically connect to your MCP service at http://localhost:8081/mcp"
+                )
+
                 # Start inspector in main thread (blocking)
                 run_mcp_inspector()
             else:
                 cli_logger.info("🚀 Example service is running. Press Ctrl+C to stop.")
-                cli_logger.info("💡 Add --with-inspector to launch the visual testing interface")
-                
+                cli_logger.info(
+                    "💡 Add --with-inspector to launch the visual testing interface"
+                )
+
                 # Keep the main thread alive
                 try:
                     while True:
                         time.sleep(1)
                 except KeyboardInterrupt:
                     cli_logger.info("👋 Stopping example service...")
-                    
+
         except KeyboardInterrupt:
             cli_logger.info("👋 Stopping example service...")
         except Exception as e:
@@ -940,7 +976,7 @@ if __name__ == "__main__":
 def main(
     ctx: typer.Context,
     source_path: Annotated[
-        Optional[str], # Retained Optional for flexibility, though default is "./"
+        Optional[str],  # Retained Optional for flexibility, though default is "./"
         typer.Option(
             "--source-path",
             help="Path to the Python file or directory containing functions.",
@@ -1063,14 +1099,16 @@ def main(
         stateless_http=stateless_http,
         json_response=json_response,
     )
-    ctx.obj = common_obj # Store in context for subcommands
+    ctx.obj = common_obj  # Store in context for subcommands
 
     # Setup logging using the determined log level from common options
     # _validate_log_level is used by uvicorn.run, but _setup_logging handles SDK's internal logging.
     # We should also ensure cli_logger itself uses the correct level.
-    normalized_log_level = _validate_log_level(common_obj.log_level, cli_logger) # Validate for safety
-    _setup_logging(normalized_log_level) # Setup SDK logging
-    cli_logger.setLevel(normalized_log_level.upper()) # Set CLI logger level
+    normalized_log_level = _validate_log_level(
+        common_obj.log_level, cli_logger
+    )  # Validate for safety
+    _setup_logging(normalized_log_level)  # Setup SDK logging
+    cli_logger.setLevel(normalized_log_level.upper())  # Set CLI logger level
 
     # Log the effective source path that will be used
     if common_obj.source_path:
@@ -1078,11 +1116,13 @@ def main(
             # Attempt to resolve to an absolute path for clearer logging
             resolved_path = pathlib.Path(common_obj.source_path).resolve()
             cli_logger.info(f"Effective source path: {resolved_path}")
-        except Exception: # Fallback if path resolution fails for some reason
+        except Exception:  # Fallback if path resolution fails for some reason
             cli_logger.info(f"Effective source path: {common_obj.source_path}")
     else:
         # This case should not be reached if source_path has a default like "./"
-        cli_logger.warning("Source path is not configured. Defaulting may occur or errors might follow.")
+        cli_logger.warning(
+            "Source path is not configured. Defaulting may occur or errors might follow."
+        )
 
 
 if __name__ == "__main__":
