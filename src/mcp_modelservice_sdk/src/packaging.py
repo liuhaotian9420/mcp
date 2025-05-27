@@ -41,6 +41,10 @@ def build_mcp_package(
     workers_uvicorn: Optional[int],
     cli_logger: logging.Logger,  # Logger to use for packaging messages
     mode: str,
+    enable_event_store: bool,
+    event_store_path: Optional[str],
+    stateless_http: bool,
+    json_response: bool,
 ):
     print("DEBUG_PACKAGING: Entered build_mcp_package function.")
     # Use the provided logger for packaging messages
@@ -129,6 +133,11 @@ def build_mcp_package(
             reload_dev_mode=reload_dev_mode,
             workers_uvicorn=workers_uvicorn,
             mode=mode,
+            # Event store options will be passed from CLI when packaging supports them
+            enable_event_store=enable_event_store,
+            event_store_path=event_store_path,
+            stateless_http=stateless_http,
+            json_response=json_response,
         )
 
         # Create a requirements.txt file for user dependencies if needed

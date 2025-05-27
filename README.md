@@ -262,6 +262,51 @@ cd my-service/project
 我们欢迎您的贡献！请查看 [贡献指南](CONTRIBUTING.md) 了解如何参与项目。如有问题或建议，请提交 [Issues](https://github.com/your-project/issues)。
 
 
+## Event Store Feature
+
+This package includes support for a SQLite-based event store when using the FastMCP Streamable HTTP transport. This feature enables persistent storage of MCP events and interactions, allowing for:
+
+- History tracking
+- Stateful interactions across server restarts
+- Analytics and usage statistics
+
+### Enabling the Event Store
+
+To enable the event store, use the `enable_event_store` parameter when creating your MCP application:
+
+```python
+from mcp_modelservice_sdk.src.app_builder import create_mcp_application
+
+app = create_mcp_application(
+    source_path_str="./my_functions",
+    enable_event_store=True,  # Enable the SQLite event store
+    event_store_path="./data/mcp_events.db"  # Optional custom path
+)
+```
+
+By default, the SQLite database will be created in the current working directory as `mcp_events.db`. You can specify a custom path using the `event_store_path` parameter.
+
+### Accessing Event Store Data
+
+The event store tracks:
+- Client sessions
+- Tool calls with parameters and results
+- Resource accesses
+
+The event store instance is available on the application state:
+
+```python
+# Access the event store from the app
+event_store = app.state.event_store
+
+# Get usage statistics
+stats = event_store.get_statistics()
+
+# Get tool call history
+tool_calls = event_store.get_tool_call_history(limit=50)
+```
+
+
 ---
 
 祝您使用愉快！如有任何疑问，欢迎随时联系我们。

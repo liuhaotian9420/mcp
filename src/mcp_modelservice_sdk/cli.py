@@ -200,6 +200,34 @@ class CommonOptions:
                 rich_help_panel="Network Configuration",
             ),
         ] = None,
+        enable_event_store: Annotated[
+            bool,
+            typer.Option(
+                help="Enable SQLite-based event store for resumability support in FastMCP HTTP transport. Only applicable when json_response is False (SSE mode).",
+                rich_help_panel="Event Store Configuration",
+            ),
+        ] = False,
+        event_store_path: Annotated[
+            Optional[str],
+            typer.Option(
+                help="Custom path for the SQLite event store database file. If not specified, defaults to './mcp_event_store.db'.",
+                rich_help_panel="Event Store Configuration",
+            ),
+        ] = None,
+        stateless_http: Annotated[
+            bool,
+            typer.Option(
+                help="Enable stateless HTTP mode where each request creates a fresh transport with no session tracking. Default is stateful mode.",
+                rich_help_panel="Transport Configuration",
+            ),
+        ] = False,
+        json_response: Annotated[
+            bool,
+            typer.Option(
+                help="Use JSON response format instead of Server-Sent Events (SSE) streaming. Default is SSE mode.",
+                rich_help_panel="Transport Configuration",
+            ),
+        ] = False,
     ):
         self.source_path = source_path
         self.log_level = log_level
@@ -210,6 +238,10 @@ class CommonOptions:
         self.cors_enabled = cors_enabled
         self.cors_allow_origins = cors_allow_origins
         self.mode = mode
+        self.enable_event_store = enable_event_store
+        self.event_store_path = event_store_path
+        self.stateless_http = stateless_http
+        self.json_response = json_response
 
 def _validate_source_path(source_path: Optional[str], logger: logging.Logger) -> bool:
     """
@@ -356,6 +388,23 @@ def run(
     else:
         cli_logger.info("CORS will be disabled.")
 
+    # Validate configuration combinations
+    if common_opts.enable_event_store and common_opts.json_response:
+        cli_logger.error("Event store can only be used with SSE mode (json_response=False). Please disable either event store or JSON response mode.")
+        sys.exit(1)
+
+    # Log transport configuration
+    transport_mode = "stateless" if common_opts.stateless_http else "stateful"
+    response_format = "JSON" if common_opts.json_response else "SSE"
+    cli_logger.info(f"Transport mode: {transport_mode}, Response format: {response_format}")
+
+    # Log event store configuration
+    if common_opts.enable_event_store:
+        event_store_path_info = common_opts.event_store_path or "./mcp_event_store.db"
+        cli_logger.info(f"Event store will be enabled using SQLite database: {event_store_path_info}")
+    else:
+        cli_logger.info("Event store will be disabled.")
+
     try:
         # Import FastMCP explicitly to check if it's available
         try:
@@ -397,6 +446,10 @@ def run(
             cors_enabled=common_opts.cors_enabled,
             cors_allow_origins=common_opts.cors_allow_origins, # Use directly from common_opts
             mode=common_opts.mode.lower(),
+            enable_event_store=common_opts.enable_event_store,
+            event_store_path=common_opts.event_store_path,
+            stateless_http=common_opts.stateless_http,
+            json_response=common_opts.json_response,
         )
 
         if mcp_app is None and not has_fastmcp: # Redundant check for has_fastmcp as it exits earlier if not found
@@ -556,6 +609,23 @@ def package(
     else:
         cli_logger.info("CORS will be disabled in package.")
 
+    # Validate configuration combinations for packaging
+    if common_opts.enable_event_store and common_opts.json_response:
+        cli_logger.error("Event store can only be used with SSE mode (json_response=False). Please disable either event store or JSON response mode.")
+        sys.exit(1)
+
+    # Log transport configuration for packaging
+    transport_mode = "stateless" if common_opts.stateless_http else "stateful"
+    response_format = "JSON" if common_opts.json_response else "SSE"
+    cli_logger.info(f"Package will use transport mode: {transport_mode}, Response format: {response_format}")
+
+    # Log event store configuration for packaging
+    if common_opts.enable_event_store:
+        event_store_path_info = common_opts.event_store_path or "./mcp_event_store.db"
+        cli_logger.info(f"Event store will be enabled in package using SQLite database: {event_store_path_info}")
+    else:
+        cli_logger.info("Event store will be disabled in package.")
+
     try:
         build_mcp_package(
             package_name_from_cli=package_name,
@@ -573,6 +643,10 @@ def package(
             workers_uvicorn=package_workers,
             cli_logger=cli_logger,  # Pass the CLI logger for build_mcp_package to use
             mode=common_opts.mode.lower(),
+            enable_event_store=common_opts.enable_event_store,
+            event_store_path=common_opts.event_store_path,
+            stateless_http=common_opts.stateless_http,
+            json_response=common_opts.json_response,
         )
         cli_logger.info(
             f"Successfully packaged MCP service into '{package_name}.zip' using the CLI-based approach."
@@ -929,6 +1003,34 @@ def main(
             rich_help_panel="Service Configuration",
         ),
     ] = "composed",
+    enable_event_store: Annotated[
+        bool,
+        typer.Option(
+            help="Enable SQLite-based event store for resumability support in FastMCP HTTP transport. Only applicable when json_response is False (SSE mode).",
+            rich_help_panel="Event Store Configuration",
+        ),
+    ] = False,
+    event_store_path: Annotated[
+        Optional[str],
+        typer.Option(
+            help="Custom path for the SQLite event store database file. If not specified, defaults to './mcp_event_store.db'.",
+            rich_help_panel="Event Store Configuration",
+        ),
+    ] = None,
+    stateless_http: Annotated[
+        bool,
+        typer.Option(
+            help="Enable stateless HTTP mode where each request creates a fresh transport with no session tracking. Default is stateful mode.",
+            rich_help_panel="Transport Configuration",
+        ),
+    ] = False,
+    json_response: Annotated[
+        bool,
+        typer.Option(
+            help="Use JSON response format instead of Server-Sent Events (SSE) streaming. Default is SSE mode.",
+            rich_help_panel="Transport Configuration",
+        ),
+    ] = False,
 ):
     """
     MCP Modelservice SDK CLI
@@ -956,6 +1058,10 @@ def main(
         cors_enabled=cors_enabled,
         cors_allow_origins=processed_cors_origins,
         mode=mode,
+        enable_event_store=enable_event_store,
+        event_store_path=event_store_path,
+        stateless_http=stateless_http,
+        json_response=json_response,
     )
     ctx.obj = common_obj # Store in context for subcommands
 

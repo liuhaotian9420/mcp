@@ -122,6 +122,10 @@ def _generate_start_sh_content(
     reload_dev_mode: bool,
     workers_uvicorn: Optional[int],
     mode: str,
+    enable_event_store: bool = False,
+    event_store_path: Optional[str] = None,
+    stateless_http: bool = False,
+    json_response: bool = False,
 ) -> str:
     """
     Generate a start.sh script that directly uses the CLI to run the service.
@@ -143,6 +147,11 @@ def _generate_start_sh_content(
         target_function_names: Optional list of specific function names to expose.
         reload_dev_mode: Whether to enable auto-reload in the packaged service.
         workers_uvicorn: Number of worker processes for uvicorn.
+        mode: Mode for the MCP application (composed or routed).
+        enable_event_store: Whether to enable the SQLite event store.
+        event_store_path: Optional custom path for the event store database.
+        stateless_http: Whether to enable stateless HTTP mode.
+        json_response: Whether to use JSON response format instead of SSE.
 
     Returns:
         The content of the start.sh script.
@@ -175,6 +184,19 @@ def _generate_start_sh_content(
     # Handle mode flag
     if mode:
         cli_flags.append(f"--mode {mode}")
+
+    # Handle event store flags
+    if enable_event_store:
+        cli_flags.append("--enable-event-store")
+        if event_store_path:
+            cli_flags.append(f'--event-store-path "{event_store_path}"')
+
+    # Handle transport configuration flags
+    if stateless_http:
+        cli_flags.append("--stateless-http")
+    
+    if json_response:
+        cli_flags.append("--json-response")
 
     # Command options
     run_options = []

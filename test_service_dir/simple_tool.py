@@ -1,3 +1,6 @@
+"""
+This is a simple tool that adds two numbers.
+"""
 def add_two_numbers(a:int, b:int) -> int:
     """_summary_
 

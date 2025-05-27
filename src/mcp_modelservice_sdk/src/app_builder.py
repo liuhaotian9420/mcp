@@ -13,6 +13,8 @@ import os
 import pathlib
 import re
 import sys
+import threading
+import functools
 from typing import Any, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING, Union
 from contextlib import asynccontextmanager, AsyncExitStack
 from fastmcp.server.http import create_streamable_http_app 
@@ -20,6 +22,8 @@ from starlette.applications import Starlette
 from starlette.routing import Mount
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
+from starlette.requests import Request
+from starlette.responses import Response
 
 # Mock FastMCP class for testing when the library is not installed
 class MockFastMCP:
@@ -68,6 +72,76 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+# Thread-local storage for session context
+_session_context = threading.local()
+
+
+class SessionMiddleware:
+    """
+    Middleware to extract MCP session ID from request headers and store it in thread-local storage.
+    This enables tools to access the current session ID during request processing.
+    """
+    
+    def __init__(self, app):
+        self.app = app
+    
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http":
+            # Extract headers from the ASGI scope
+            headers = dict(scope.get("headers", []))
+            
+            # Look for the mcp-session-id header (headers are byte strings in ASGI)
+            session_id = None
+            for name, value in headers.items():
+                if name == b"mcp-session-id":
+                    session_id = value.decode("utf-8")
+                    break
+            
+            if session_id:
+                # Set the session ID in thread-local storage
+                set_current_session_id(session_id)
+                logger.debug(f"SessionMiddleware: Set session ID {session_id} for request")
+            else:
+                logger.debug("SessionMiddleware: No mcp-session-id header found in request")
+            
+            try:
+                # Process the request
+                await self.app(scope, receive, send)
+            finally:
+                # Clean up thread-local storage after request processing
+                if hasattr(_session_context, 'session_id'):
+                    delattr(_session_context, 'session_id')
+                    logger.debug("SessionMiddleware: Cleaned up session ID from thread-local storage")
+        else:
+            # For non-HTTP requests (like WebSocket), just pass through
+            await self.app(scope, receive, send)
+
+
+def get_current_session_id() -> Optional[str]:
+    """
+    Get the current session ID from thread-local storage.
+    
+    Returns:
+        The session ID if available, None otherwise.
+    """
+    session_id = getattr(_session_context, 'session_id', None)
+    if session_id:
+        logger.debug(f"Retrieved session ID from thread-local storage: {session_id}")
+    else:
+        logger.debug("No session ID found in thread-local storage")
+    return session_id
+
+
+def set_current_session_id(session_id: str) -> None:
+    """
+    Set the current session ID in thread-local storage.
+    
+    Args:
+        session_id: The session ID to store.
+    """
+    logger.debug(f"Setting session ID in thread-local storage: {session_id}")
+    _session_context.session_id = session_id
+
 
 class TransformationError(Exception):
     """Custom exception for errors during the transformation process."""
@@ -111,6 +185,7 @@ def _validate_and_wrap_tool(
     func: Callable[..., Any],
     func_name: str,
     file_path: pathlib.Path,
+    tool_call_cache: Optional['SessionToolCallCache'] = None,
 ):
     """
     Validates function signature and docstring, then wraps it as an MCP tool.
@@ -161,10 +236,18 @@ def _validate_and_wrap_tool(
         )
 
     try:
-        mcp_instance.tool(name=func_name)(func)
-        logger.info(
-            f"Successfully wrapped function '{func_name}' from '{file_path}' as an MCP tool."
-        )
+        # Apply caching if tool_call_cache is provided
+        if tool_call_cache is not None:
+            cached_func = tool_call_cache.create_cached_tool(func)
+            mcp_instance.tool(name=func_name)(cached_func)
+            logger.info(
+                f"Successfully wrapped function '{func_name}' from '{file_path}' as a cached MCP tool."
+            )
+        else:
+            mcp_instance.tool(name=func_name)(func)
+            logger.info(
+                f"Successfully wrapped function '{func_name}' from '{file_path}' as an MCP tool."
+            )
     except Exception as e:
         logger.error(
             f"Failed to wrap function '{func_name}' from '{file_path}' as an MCP tool: {e}",
@@ -318,6 +401,95 @@ def discover_and_group_functions(
     return functions_by_file, base_dir
 
 
+class SessionToolCallCache:
+    """
+    Simple in-memory cache for tool call results per session.
+    Used in stateful + JSON response mode to cache tool call results.
+    """
+    
+    def __init__(self):
+        self._cache: Dict[str, Dict[str, Any]] = {}  # session_id -> {tool_call_key -> result}
+        logger.info("Initialized SessionToolCallCache for stateful JSON response mode")
+    
+    def get_cache_key(self, tool_name: str, tool_args: Dict[str, Any]) -> str:
+        """Generate a cache key from tool name and arguments."""
+        import json
+        import hashlib
+        
+        # Create a deterministic key from tool name and sorted args
+        args_str = json.dumps(tool_args, sort_keys=True, default=str)
+        key_data = f"{tool_name}:{args_str}"
+        return hashlib.md5(key_data.encode()).hexdigest()
+    
+    def get(self, session_id: str, tool_name: str, tool_args: Dict[str, Any]) -> Optional[Any]:
+        """Get cached result for a tool call in a specific session."""
+        if session_id not in self._cache:
+            return None
+        
+        cache_key = self.get_cache_key(tool_name, tool_args)
+        result = self._cache[session_id].get(cache_key)
+        
+        if result is not None:
+            logger.info(f"Cache hit for session {session_id}, tool {tool_name}")
+        
+        return result
+    
+    def set(self, session_id: str, tool_name: str, tool_args: Dict[str, Any], result: Any) -> None:
+        """Cache a tool call result for a specific session."""
+        if session_id not in self._cache:
+            self._cache[session_id] = {}
+        
+        cache_key = self.get_cache_key(tool_name, tool_args)
+        self._cache[session_id][cache_key] = result
+        
+        logger.info(f"Cached result for session {session_id}, tool {tool_name}")
+    
+    def clear_session(self, session_id: str) -> None:
+        """Clear all cached results for a specific session."""
+        if session_id in self._cache:
+            del self._cache[session_id]
+            logger.debug(f"Cleared cache for session {session_id}")
+    
+    def get_stats(self) -> Dict[str, int]:
+        """Get cache statistics."""
+        total_sessions = len(self._cache)
+        total_entries = sum(len(session_cache) for session_cache in self._cache.values())
+        return {
+            "total_sessions": total_sessions,
+            "total_cached_entries": total_entries
+        }
+    
+    def create_cached_tool(self, func: Callable[..., Any]) -> Callable[..., Any]:
+        """Create a cached version of a tool function."""
+        @functools.wraps(func)
+        def cached_wrapper(*args, **kwargs):
+            # Get current session ID
+            session_id = get_current_session_id()
+            
+            if session_id is None:
+                # No session context, execute function directly
+                logger.info(f"No session context for {func.__name__}, executing directly")
+                return func(*args, **kwargs)
+            
+            # Check cache first
+            cached_result = self.get(session_id, func.__name__, kwargs)
+            if cached_result is not None:
+                logger.info(f"Cache hit for {func.__name__} in session {session_id}")
+                return cached_result
+            
+            # Execute function and cache result
+            logger.info(f"Cache miss for {func.__name__} in session {session_id}, executing function")
+            result = func(*args, **kwargs)
+            
+            # Cache the result
+            self.set(session_id, func.__name__, kwargs, result)
+            logger.info(f"Cached result for {func.__name__} in session {session_id}")
+            
+            return result
+        
+        return cached_wrapper
+
+
 def _get_module_docstring(file_path: pathlib.Path) -> Optional[str]:
     """
     Extract the module docstring from a Python file.
@@ -343,10 +515,12 @@ def _get_module_docstring(file_path: pathlib.Path) -> Optional[str]:
         return None
 
 
+
 def create_mcp_instances(
     functions_by_file: Dict[pathlib.Path, List[Tuple[Callable[..., Any], str]]],
     base_dir: pathlib.Path,
-    mcp_server_name: str
+    mcp_server_name: str,
+    tool_call_cache: Optional[SessionToolCallCache] = None
 ) -> Dict[pathlib.Path, Tuple[Any, str, int]]:
     """
     Creates FastMCP instances for each file and registers functions as tools.
@@ -388,7 +562,7 @@ def create_mcp_instances(
         for func, func_name in funcs:
             logger.info(f"Processing function '{func_name}' from {file_path}...")
             try:
-                _validate_and_wrap_tool(file_mcp, func, func_name, file_path)
+                _validate_and_wrap_tool(file_mcp, func, func_name, file_path, tool_call_cache)
                 tools_registered += 1
             except Exception as e:
                 logger.error(f"Error registering function {func_name}: {e}")
@@ -420,7 +594,11 @@ def create_mcp_application(
     # log_level: str = "info", # Logging setup will be handled by _setup_logging from core or a new utils module
     cors_enabled: bool = True,
     cors_allow_origins: Optional[List[str]] = None,
-    mode: Optional[str] = "composed"
+    mode: Optional[str] = "composed",
+    enable_event_store: bool = False,
+    event_store_path: Optional[str] = None,
+    stateless_http: bool = False,
+    json_response: bool = False
 ) -> Starlette:
     """
     Creates a Starlette application with multiple FastMCP instances based on directory structure.
@@ -440,6 +618,15 @@ def create_mcp_application(
         cors_enabled: Whether to enable CORS middleware.
         cors_allow_origins: List of origins to allow for CORS. Defaults to ["*"] if None.
         mode: whether to give each FastMCP instance its own route or compose them all under a single route. Default is "composed".
+        enable_event_store: If True, creates and uses a SQLite event store for tracking interactions.
+                           Only applicable when json_response=False (SSE mode).
+        event_store_path: Optional custom path for the SQLite database file. If None, defaults to a file
+                         in the current working directory.
+        stateless_http: If True, enables stateless HTTP mode where each request creates a fresh transport
+                       with no session tracking. Default is stateful mode.
+        json_response: If True, uses JSON response format instead of Server-Sent Events (SSE) streaming.
+                      Default is SSE mode.
+        
     Returns:
         A configured Starlette application with multiple mounted FastMCP instances.
 
@@ -452,21 +639,29 @@ def create_mcp_application(
     logger.info(f"Source path for tools: {source_path_str}")
     if target_function_names:
         logger.info(f"Target functions: {target_function_names}")
+    
+    # Validate configuration combinations
+    if enable_event_store and json_response:
+        raise TransformationError(
+            "Event store can only be used with SSE mode (json_response=False). "
+            "Please disable either event store or JSON response mode."
+        )
+    
+    # Log transport configuration
+    transport_mode = "stateless" if stateless_http else "stateful"
+    response_format = "JSON" if json_response else "SSE"
+    logger.info(f"Transport mode: {transport_mode}, Response format: {response_format}")
 
     # Discover and group functions by file
     functions_by_file, base_dir = discover_and_group_functions(source_path_str, target_function_names)
-    
-    # Create MCP instances for each file with its functions
-    mcp_instances = create_mcp_instances(functions_by_file, base_dir, mcp_server_name)
-    
-    if not mcp_instances:
-        logger.error("No FastMCP instances could be created with valid tools.")
-        raise TransformationError(
-            "No FastMCP instances could be created with valid tools. Check logs for details."
-        )
         
-    # Set up CORS middleware if enabled
+    # Set up middleware stack
     middleware = []
+    
+    # Add session middleware first to extract session ID from headers
+    middleware.append(Middleware(SessionMiddleware))
+    
+    # Add CORS middleware if enabled
     if cors_enabled:
         effective_cors_origins = cors_allow_origins if cors_allow_origins is not None else ["*"]
         middleware.append(
@@ -477,6 +672,32 @@ def create_mcp_application(
                 allow_methods=["*"],
                 allow_headers=["*"],
             )
+        )
+
+    # Create an event store if enabled (only for stateful + SSE mode)
+    event_store = None
+    if enable_event_store and not json_response and not stateless_http:
+        from .mcp_event_store import SQLiteEventStore
+        try:
+            event_store = SQLiteEventStore(event_store_path)
+            logger.info(f"SQLite MCP event store initialized at: {event_store.db_path}")
+        except Exception as e:
+            logger.error(f"Failed to initialize MCP event store: {e}")
+            logger.warning("Continuing without event store functionality")
+    
+    # Create a cache for stateful + JSON response mode
+    tool_call_cache = None
+    if not stateless_http and json_response:
+        tool_call_cache = SessionToolCallCache()
+        logger.info("Tool call cache initialized for stateful JSON response mode")
+    
+    # Create MCP instances for each file with its functions
+    mcp_instances = create_mcp_instances(functions_by_file, base_dir, mcp_server_name, tool_call_cache)
+    
+    if not mcp_instances:
+        logger.error("No FastMCP instances could be created with valid tools.")
+        raise TransformationError(
+            "No FastMCP instances could be created with valid tools. Check logs for details."
         )
 
     if mode is None:
@@ -519,24 +740,53 @@ def create_mcp_application(
 
         # Create the final ASGI app from the main FastMCP instance with all subservers mounted
         try:
-            # Create the main ASGI app with the basic path parameter
-            main_asgi_app = main_mcp.http_app(path=mcp_service_base_path)
+            # Create the main ASGI app with streamable HTTP transport
+            from fastmcp.server.http import create_streamable_http_app
+            main_asgi_app = create_streamable_http_app(
+                server=main_mcp,  # type: ignore
+                streamable_http_path=mcp_service_base_path,
+                event_store=event_store,  # type: ignore (None if not enabled)
+                json_response=json_response,
+                stateless_http=stateless_http,
+                middleware=middleware if middleware else None
+            )
             
-            # Log that we're using the default transport due to compatibility issues
-            logger.info("Using default transport for FastMCP HTTP app.")
+            # Log the transport configuration
+            transport_info = []
+            if stateless_http:
+                transport_info.append("stateless")
+            else:
+                transport_info.append("stateful")
+            
+            if json_response:
+                transport_info.append("JSON response")
+            else:
+                transport_info.append("SSE streaming")
+            
+            if event_store:
+                transport_info.append("with SQLite event store")
+            elif tool_call_cache:
+                transport_info.append("with tool call cache")
+            
+            logger.info(f"Using streamable HTTP transport: {', '.join(transport_info)}")
             
             # Apply the root path by wrapping the ASGI app with a Starlette Mount
             routes = [Mount(mcp_server_root_path, app=main_asgi_app)]
+            
             # Create app with properly typed parameters
             app = Starlette(
-            debug=False,
-            routes=routes,
-            middleware=middleware if middleware else None,
-            lifespan=main_asgi_app.router.lifespan_context
-        )
+                debug=False,
+                routes=routes,
+                middleware=middleware if middleware else None,
+                lifespan=main_asgi_app.router.lifespan_context
+            )
             
-            # Store the main FastMCP instance in the app state for reference
+            # Store the main FastMCP instance and related objects in the app state for reference
             app.state.fastmcp_instance = main_mcp  # type: ignore[attr-defined]
+            if event_store:
+                app.state.event_store = event_store  # type: ignore[attr-defined]
+            if tool_call_cache:
+                app.state.tool_call_cache = tool_call_cache  # type: ignore[attr-defined]
             
             logger.info(
                 f"Successfully created Starlette application with FastMCP server composition at '{mcp_server_root_path}'."
@@ -551,11 +801,23 @@ def create_mcp_application(
         # Create a Starlette app with each FastMCP instance mounted at its own route
         routes = []
         apps = []
+        
         for file_path, (file_mcp, route_path, tools_registered) in mcp_instances.items():
-            file_app = file_mcp.http_app()
+            # Create the file app with appropriate transport configuration
+            from fastmcp.server.http import create_streamable_http_app
+            file_app = create_streamable_http_app(
+                server=file_mcp,  # type: ignore
+                streamable_http_path=mcp_service_base_path,
+                event_store=event_store,  # type: ignore (None if not enabled)
+                json_response=json_response,
+                stateless_http=stateless_http
+            )
+            logger.info(f"Created app for {file_path} with transport configuration")
+                
             logger.info(f"Mounting {file_path} to {route_path}")
             routes.append(Mount('/'+route_path, app=file_app))
             apps.append(file_app)
+            
         try:    
             app = Starlette(
                 debug=False,  # Explicitly set parameter
@@ -564,6 +826,10 @@ def create_mcp_application(
                 lifespan=make_combined_lifespan(*apps)
             )
             app.state.mcp_instances = mcp_instances
+            if event_store:
+                app.state.event_store = event_store  # type: ignore[attr-defined]
+            if tool_call_cache:
+                app.state.tool_call_cache = tool_call_cache  # type: ignore[attr-defined]
             return app
         except Exception as e:
             logger.error(f"Error creating Starlette application: {e}")
