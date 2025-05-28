@@ -37,20 +37,20 @@ uv pip install mcpy-cli
 ### 2. MCP 服务示例
 
 ```bash
-mcp-modelservice example
+mcpy-cli example
 ```
 
 ### 3. 搭建 MCP 服务
 
 ```bash
 # 假设在根目录下有一个 sample_tools.py 的文件
-mcp-modelservice run --source-path sample_tools.py
+mcpy-cli run --source-path sample_tools.py
 ```
 
 或者如果你安装了 uv
 
 ```bash
-uvx --from mcpy-cli mcp-modelservice --source-path sample_tools.py run
+uvx --from mcpy-cli mcpy-cli --source-path sample_tools.py run
 ```
 
 服务启动后，访问测试页面： http://localhost:8080/mcp-server/mcp
@@ -65,26 +65,26 @@ uvx --from mcpy-cli mcp-modelservice --source-path sample_tools.py run
 
 **1. 本地运行**
 
-- 使用 `mcp-modelservice run` 命令可以在本地将多个 Python 文件中的函数部署为指定端口的 MCP 服务
+- 使用 `mcpy-cli run` 命令可以在本地将多个 Python 文件中的函数部署为指定端口的 MCP 服务
 - 支持自动重载，适合开发调试
 
 **2. 打包**
-- 使用 `mcp-modelservice package` 命令可以将指定文件夹打包在一个名为 project 的文件夹之中
+- 使用 `mcpy-cli package` 命令可以将指定文件夹打包在一个名为 project 的文件夹之中
 - 提供一个 start.sh 作为启动服务的脚本，方便部署和修改
 
 ```bash
 # 启动服务
-mcp-modelservice run --source-path /path/to/your/code --port 8080
+mcpy-cli run --source-path /path/to/your/code --port 8080
 # 或者使用 uvx
 uvx mcpy-cli run --source-path /path/to/your/code --port 8080
 
 # 打包服务（用于生产部署）
-mcp-modelservice package --source-path /path/to/your/code --package-name my-service
+mcpy-cli package --source-path /path/to/your/code --package-name my-service
 # 或者使用 uvx
 uvx mcpy-cli package --source-path /path/to/your/code --package-name my-service
 
 # 查看帮助
-mcp-modelservice --help
+mcpy-cli --help
 # 或者使用 uvx
 uvx mcpy-cli --help
 ```
@@ -103,7 +103,7 @@ uvx mcpy-cli --help
 **使用示例**：
 ```bash
 # 使用组合模式（默认）
-mcp-modelservice run --source-path ./my_tools --mode composed
+mcpy-cli run --source-path ./my_tools --mode composed
 
 # 访问地址：http://localhost:8080/mcp-server/mcp
 # 工具调用：tool_file1_add, tool_file2_calculate 等
@@ -120,7 +120,7 @@ mcp-modelservice run --source-path ./my_tools --mode composed
 **使用示例**：
 ```bash
 # 使用路由模式
-mcp-modelservice run --source-path ./my_tools --mode routed
+mcpy-cli run --source-path ./my_tools --mode routed
 
 # 访问地址：
 # http://localhost:8080/math_tools - 数学工具模块
@@ -163,7 +163,7 @@ mcp-modelservice run --source-path ./my_tools --mode routed
 
 ```bash
 # 启用事件存储并指定数据库路径
-mcp-modelservice run --source-path ./my_tools --enable-event-store --event-store-path ./my_service_events.db
+mcpy-cli run --source-path ./my_tools --enable-event-store --event-store-path ./my_service_events.db
 ```
 
 此功能对于需要长时间运行或维护会话状态的 MCP 服务特别有用。

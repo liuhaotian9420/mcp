@@ -5,7 +5,6 @@ Usage:
     python run_with_event_store.py --source-path /path/to/tools --event-store
 """
 
-
 from mcpy_cli.src.app_builder import create_mcp_application
 from mcpy_cli.src.cli import run_app_with_args
 

@@ -37,8 +37,8 @@ uv pip install mcpy-cli
 成功安装后，运行以下命令验证：
 
 ```bash
-mcp-modelservice --version
-mcp-modelservice --help
+mcpy-cli --version
+mcpy-cli --help
 ```
 
 ---
@@ -135,7 +135,7 @@ def greet_user(name: str, language: str = "chinese") -> str:
 #### 使用 MCP 服务运行器启动
 
 ```bash
-mcp-modelservice run --source-path tools.py --port 8080
+mcpy-cli run --source-path tools.py --port 8080
 ```
 
 #### 使用 uv 启动（推荐）
@@ -372,13 +372,13 @@ def process_sales_data(sales_data: List[Dict[str, Any]]) -> Dict[str, Any]:
 #### Composed 模式（默认）
 
 ```bash
-mcp-modelservice run --source-path . --mode composed --port 8080
+mcpy-cli run --source-path . --mode composed --port 8080
 ```
 
 #### Routed 模式
 
 ```bash
-mcp-modelservice run --source-path . --mode routed --port 8080
+mcpy-cli run --source-path . --mode routed --port 8080
 ```
 
 ---
@@ -405,7 +405,7 @@ CORS_ORIGINS=*
 ### 🚀 高级启动选项
 
 ```bash
-mcp-modelservice run \
+mcpy-cli run \
   --source-path . \
   --port 8080 \
   --host 0.0.0.0 \
@@ -426,7 +426,7 @@ mcp-modelservice run \
 使用不同端口：
 
 ```bash
-mcp-modelservice run --source-path tools.py --port 9000
+mcpy-cli run --source-path tools.py --port 9000
 ```
 
 或者查找并终止占用端口的进程：
@@ -532,7 +532,7 @@ def safe_function(data: str) -> dict:
 1. 打包服务：
 
 ```bash
-mcp-modelservice package --source-path . --output my-service.zip
+mcpy-cli package --source-path . --output my-service.zip
 ```
 
 2. 在目标服务器解压并安装依赖：

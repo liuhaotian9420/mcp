@@ -17,8 +17,6 @@ sys.path.insert(0, ".")
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
 
-
-
 def test_cache_with_actual_tools():
     """Test the cache with actual tool calls through the MCP application."""
     print("🧪 Testing SessionToolCallCache with actual tool calls...\n")

@@ -63,7 +63,7 @@ def word_count(text: str) -> int:
 3. **Run in development mode**:
 ```bash
 # Start development server with auto-reload
-mcp-modelservice run --source-path ./ --port 8080 --reload True
+mcpy-cli run --source-path ./ --port 8080 --reload True
 
 # Or using uvx without installation
 uvx mcpy-cli run --source-path ./ --port 8080 --reload True
@@ -80,7 +80,7 @@ uvx mcpy-cli run --source-path ./ --port 8080 --reload True
 1. **Package your service for deployment**:
 ```bash
 # Create a deployable package with all dependencies
-mcp-modelservice package --source-path ./my_project --package-name math-text-tools
+mcpy-cli package --source-path ./my_project --package-name math-text-tools
 
 # A zip file will be created: math-text-tools.zip
 ```
@@ -178,7 +178,7 @@ def _create_composed_application(mcp_instances, mcp_server_name, ...):
 **Usage**:
 ```bash
 # Using composed mode (default)
-mcp-modelservice run --source-path ./my_tools --mode composed
+mcpy-cli run --source-path ./my_tools --mode composed
 
 # Access: http://localhost:8080/mcp-server/mcp
 # Tools: tool_file1_add, tool_file2_calculate, etc.
@@ -222,7 +222,7 @@ def _create_routed_application(mcp_instances, mcp_service_base_path, ...):
 **Usage**:
 ```bash
 # Using routed mode
-mcp-modelservice run --source-path ./my_tools --mode routed
+mcpy-cli run --source-path ./my_tools --mode routed
 
 # Access endpoints:
 # http://localhost:8080/math_tools - Math utilities
@@ -270,13 +270,13 @@ mcp-modelservice run --source-path ./my_tools --mode routed
 ### Local Development
 ```bash
 # Quick development with hot reload
-mcp-modelservice run --source-path ./my_project --reload True
+mcpy-cli run --source-path ./my_project --reload True
 
 # Expose on all interfaces (for network testing)
-mcp-modelservice run --source-path ./my_project --host 0.0.0.0 --port 9000
+mcpy-cli run --source-path ./my_project --host 0.0.0.0 --port 9000
 
 # With custom server name and service path
-mcp-modelservice run --source-path ./my_project --mcp-name CustomTools --server-root /api
+mcpy-cli run --source-path ./my_project --mcp-name CustomTools --server-root /api
 ```
 
 ### Containerized Deployment
@@ -337,7 +337,7 @@ Every MCP service includes a built-in web interface for interactive testing:
 
 1. Start your service:
    ```bash
-   mcp-modelservice run --source-path ./my_project --port 8080
+   mcpy-cli run --source-path ./my_project --port 8080
    ```
 
 2. Open your browser and navigate to:

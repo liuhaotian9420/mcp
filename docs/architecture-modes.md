@@ -312,10 +312,10 @@ def create_routed_app():
 #### 1. **配置更新**
 ```bash
 # 原配置
-mcp-modelservice run --source-path ./tools --mode composed
+mcpy-cli run --source-path ./tools --mode composed
 
 # 新配置  
-mcp-modelservice run --source-path ./tools --mode routed
+mcpy-cli run --source-path ./tools --mode routed
 ```
 
 #### 2. **客户端代码调整**

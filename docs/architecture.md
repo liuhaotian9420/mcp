@@ -140,7 +140,7 @@
 
 ```mermaid
 graph TD
-    A[用户编写 Python 函数] --> B[运行 mcp-modelservice run]
+    A[用户编写 Python 函数] --> B[运行 mcpy-cli run]
     B --> C[发现器扫描代码]
     C --> D[解析函数签名和文档]
     D --> E[验证函数合规性]
@@ -157,7 +157,7 @@ graph TD
 
 ```mermaid
 graph TD
-    A[开发完成] --> B[运行 mcp-modelservice package]
+    A[开发完成] --> B[运行 mcpy-cli package]
     B --> C[创建部署包]
     C --> D[生成 Dockerfile]
     D --> E[打包依赖和配置]

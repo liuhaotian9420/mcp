@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mcpy-cli"
-version = "0.2.6"
+version = "0.3.0"
 description = "A CLI for the MCP Modelservice Example"
 readme = "README.pypi.md"
 requires-python = ">=3.10"
@@ -44,7 +44,7 @@ Documentation = "https://github.com/liuhaotian9420/mcp/docs"
 "Bug Tracker" = "https://github.com/liuhaotian9420/mcp/issues"
 
 [project.scripts]
-mcpy_cli = "mcpy_cli.cli:app"
+mcpy-cli = "mcpy_cli.cli:app"
 
 [project.optional-dependencies]
 test = [

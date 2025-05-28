@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Test script to demonstrate SessionToolCallCache integration with MCP application."""
+
 from src.mcpy_cli.src.app_builder import (
     create_mcp_application,
     set_current_session_id,
@@ -12,8 +13,6 @@ sys.path.insert(0, ".")
 
 # Set up logging to see cache messages
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
-
-
 
 
 def slow_add(a: int, b: int) -> int:

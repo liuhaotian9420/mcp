@@ -56,7 +56,7 @@ install_dependencies() {{
 
 # Function to start the service using the CLI
 start_service() {{
-    echo "[INFO] Starting MCP service using mcp-modelservice CLI..."
+    echo "[INFO] Starting MCP service using mcpy-cli CLI..."
     $PYTHON_CMD -m mcpy_cli.cli \
         --source-path "{source_path}" \
         --mcp-name "{mcp_server_name}" \

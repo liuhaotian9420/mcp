@@ -877,7 +877,7 @@ def call_external_api(service: str, endpoint: str) -> Dict[str, Any]:
     
     headers = {
         "Authorization": f"Bearer {api_key}",
-        "User-Agent": "MCP-ModelService/1.0"
+        "User-Agent": "mcpy-cli/1.0"
     }
     
     # API调用逻辑...
