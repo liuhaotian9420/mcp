@@ -1,4 +1,4 @@
-# 🚀 轻松构建与部署 MCP 服务：`mcpy-cli` 实战指南
+# 🚀 MCPY-CLI: 快速从 Python 文件构建 MCP 服务
 
 *[English Version](README.en.md)*
 
@@ -183,4 +183,3 @@ mcpy-cli run --source-path ./my_tools --enable-event-store --event-store-path ./
 - [完整文档](docs/README.md)
 - [架构设计指南](docs/architecture.md)
 - [最佳实践](docs/best-practices.md)
-
