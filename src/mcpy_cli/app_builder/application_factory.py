@@ -39,7 +39,7 @@ def make_combined_lifespan(*subapps):
 def create_mcp_application(
     source_path_str: str,
     target_function_names: Optional[List[str]] = None,
-    mcp_server_name: str = "MCPModelService",
+    mcp_server_name: str = "MCPY-CLI",
     mcp_server_root_path: str = "/mcp-server",
     mcp_service_base_path: str = "/mcp",
     cors_enabled: bool = True,

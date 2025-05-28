@@ -58,6 +58,8 @@ def _get_tool_documentation_details(
             try:
                 sig = inspect.signature(func)
                 docstring = inspect.getdoc(func) or "No docstring provided."
+                if inspect.getcomments(func):
+                    docstring += f"""\n\nAdditional comments:\n{inspect.getcomments(func)}"""
                 params = []
                 for p_name, p in sig.parameters.items():
                     param_str = p_name
@@ -221,6 +223,7 @@ def _generate_start_sh_content(
         effective_port=effective_port,
         cli_flags=cli_flags_str,
         uvicorn_flags=uvicorn_flags_str,
+        run_options_with_continuation=f" {uvicorn_flags_str}" if uvicorn_flags_str else "",
     )
 
     return content
@@ -229,41 +232,41 @@ def _generate_start_sh_content(
 def _generate_readme_md_content(
     package_name: str,
     mcp_server_name: str,
-    mcp_server_root_path: str,
-    mcp_service_base_path: str,
-    effective_host: str,
-    effective_port: int,
+    service_url_example: str,
     tool_docs: List[Dict[str, str]],
 ) -> str:
     """
     Generate README.md content for the packaged service.
     """
+    # Read the template
     template_str = _read_template("README.md.template")
 
     # Generate tool documentation section
     tools_section = ""
     if tool_docs:
-        tools_section = "## Available Tools\n\n"
         for tool in tool_docs:
-            tools_section += f"### {tool['name']}\n\n"
+            tools_section += f"### `{tool['name']}`\n\n"
             tools_section += f"**Signature:** `{tool['signature']}`\n\n"
-            tools_section += f"**Description:** {tool['docstring']}\n\n"
-            tools_section += f"**Source:** {tool['file_path']}\n\n"
+            tools_section += f"**Description:**\n```\n{tool['docstring']}\n```\n\n"
+            tools_section += f"**Source File:** `{tool['file_path']}`\n\n---\n"
     else:
-        tools_section = (
-            "## Available Tools\n\nNo tools were documented during packaging.\n\n"
-        )
+        tools_section = "No tools were automatically documented during packaging. Please refer to the service provider for details on available tools.\n"
 
-    # Replace placeholders in the template
-    content = template_str.format(
-        package_name=package_name,
-        mcp_server_name=mcp_server_name,
-        mcp_server_root_path=mcp_server_root_path,
-        mcp_service_base_path=mcp_service_base_path,
-        effective_host=effective_host,
-        effective_port=effective_port,
-        tools_section=tools_section,
-    )
+    # Create a dictionary with all the replacements
+    replacements = {
+        "package_name": package_name,
+        "mcp_server_name": mcp_server_name,
+        "service_url_example": service_url_example,
+        "tool_documentation_section": tools_section,
+        "service_purpose_description": "performing specific tasks",  # Default placeholder
+        "service_purpose_description_short": "specific tasks",  # Default placeholder for shorter description
+    }
+    
+    # Manually replace each placeholder in the template
+    content = template_str
+    for key, value in replacements.items():
+        placeholder = "{" + key + "}"
+        content = content.replace(placeholder, value)
 
     return content
 
@@ -271,39 +274,41 @@ def _generate_readme_md_content(
 def _generate_readme_zh_md_content(
     package_name: str,
     mcp_server_name: str,
-    mcp_server_root_path: str,
-    mcp_service_base_path: str,
-    effective_host: str,
-    effective_port: int,
+    service_url_example: str,
     tool_docs: List[Dict[str, str]],
 ) -> str:
     """
     Generate Chinese README.md content for the packaged service.
     """
+    # Read the template
     template_str = _read_template("README_zh.md.template")
 
     # Generate tool documentation section in Chinese
     tools_section = ""
     if tool_docs:
-        tools_section = "## 可用工具\n\n"
         for tool in tool_docs:
-            tools_section += f"### {tool['name']}\n\n"
+            tools_section += f"### `{tool['name']}`\n\n"
             tools_section += f"**函数签名:** `{tool['signature']}`\n\n"
-            tools_section += f"**描述:** {tool['docstring']}\n\n"
-            tools_section += f"**源文件:** {tool['file_path']}\n\n"
+            tools_section += f"**描述:**\n```\n{tool['docstring']}\n```\n\n"
+            tools_section += f"**源文件:** `{tool['file_path']}`\n\n---\n"
     else:
-        tools_section = "## 可用工具\n\n打包过程中未发现任何工具。\n\n"
+        tools_section = "打包过程中未自动记录任何工具。请联系服务提供商了解可用工具的详细信息。\n"
 
-    # Replace placeholders in the template
-    content = template_str.format(
-        package_name=package_name,
-        mcp_server_name=mcp_server_name,
-        mcp_server_root_path=mcp_server_root_path,
-        mcp_service_base_path=mcp_service_base_path,
-        effective_host=effective_host,
-        effective_port=effective_port,
-        tools_section=tools_section,
-    )
+    # Create a dictionary with all the replacements
+    replacements = {
+        "package_name": package_name,
+        "mcp_server_name": mcp_server_name,
+        "service_url_example": service_url_example,
+        "tool_documentation_section": tools_section,
+        "service_purpose_description": "执行特定任务",  # Default placeholder in Chinese
+        "service_purpose_description_short": "特定任务",  # Default placeholder for shorter description in Chinese
+    }
+    
+    # Manually replace each placeholder in the template
+    content = template_str
+    for key, value in replacements.items():
+        placeholder = "{" + key + "}"
+        content = content.replace(placeholder, value)
 
     return content
 

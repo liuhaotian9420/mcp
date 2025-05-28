@@ -105,6 +105,9 @@ def build_mcp_package(
             str(source_path_obj), target_function_names, packaging_logger
         )
 
+        # Construct service_url_example for READMEs
+        service_url_example = f"http://{effective_host}:{effective_port}"
+
         # Using lightweight CLI-based packaging approach
         packaging_logger.info("Using lightweight CLI-based packaging approach...")
         if not tool_docs and target_function_names:
@@ -162,10 +165,7 @@ def build_mcp_package(
         readme_md_content = _generate_readme_md_content(
             package_name=package_name_from_cli,
             mcp_server_name=mcp_server_name,
-            mcp_server_root_path=mcp_server_root_path,
-            mcp_service_base_path=mcp_service_base_path,
-            effective_host=effective_host,
-            effective_port=effective_port,
+            service_url_example=service_url_example,
             tool_docs=tool_docs,
         )
         readme_file = project_dir / "README.md"
@@ -177,10 +177,7 @@ def build_mcp_package(
         readme_zh_md_content = _generate_readme_zh_md_content(
             package_name=package_name_from_cli,
             mcp_server_name=mcp_server_name,
-            mcp_server_root_path=mcp_server_root_path,
-            mcp_service_base_path=mcp_service_base_path,
-            effective_host=effective_host,
-            effective_port=effective_port,
+            service_url_example=service_url_example,
             tool_docs=tool_docs,
         )
         readme_zh_file = project_dir / "README_zh.md"
