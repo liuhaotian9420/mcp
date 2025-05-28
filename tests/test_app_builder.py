@@ -17,15 +17,15 @@ sys.path.append(os.path.join(project_root, "src"))
 
 # Import required modules
 try:
-    from mcp_modelservice_sdk.app_builder import (
+    from mcpy_cli.app_builder import (
         create_mcp_instances,
         discover_and_group_functions,
         get_route_from_path,
         validate_resource_prefix,
         SessionToolCallCache,
     )
-    from mcp_modelservice_sdk.app_builder.validation import validate_and_wrap_tool
-    from mcp_modelservice_sdk.app_builder.mocking import get_fastmcp_class
+    from mcpy_cli.app_builder.validation import validate_and_wrap_tool
+    from mcpy_cli.app_builder.mocking import get_fastmcp_class
 
     imports_successful = True
 except ImportError as e:
@@ -279,7 +279,7 @@ def greet_user(name: str) -> str:
         self.assertGreater(len(functions_by_file), 0)
         self.assertIsInstance(base_dir, pathlib.Path)
 
-    @patch("mcp_modelservice_sdk.app_builder.instance_factory.get_fastmcp_class")
+    @patch("mcpy_cli.app_builder.instance_factory.get_fastmcp_class")
     def test_create_mcp_instances(self, mock_get_fastmcp_class):
         """Test creating MCP instances from source files."""
         # Mock FastMCP class

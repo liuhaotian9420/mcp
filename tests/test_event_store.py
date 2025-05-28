@@ -11,7 +11,7 @@ sys.path.append(project_root)
 sys.path.append(os.path.join(project_root, "src"))
 
 try:
-    from mcp_modelservice_sdk.mcp_event_store import (
+    from mcpy_cli.mcp_event_store import (
         MCPEventStore,
         EventType,
         ToolCallEvent,

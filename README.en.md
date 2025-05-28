@@ -1,6 +1,8 @@
-# MCP Project Tutorial
+# 🚀 Easy Build & Deploy MCP Services: `mcpy-cli` Guide
 
-Welcome to the MCP (Model Context Protocol) project tutorial! This guide will walk you through creating MCP-enabled services using Python, primarily with the `fastapi-mcp` and `fastmcp` libraries.
+*[中文版本](README.md)*
+
+Welcome to the `mcpy-cli`! This guide will help you quickly create, run, convert, and deploy your own MCP (Model Context Protocol) services with minimal effort.
 
 ## Overview
 
@@ -37,10 +39,10 @@ Since this package is available on PyPI, you can quickly use it with `uvx` witho
 
 ```bash
 # Run the MCP service directly with your own Python tools file
-uvx mcp-modelservice-sdk run --source-path your_tools.py --port 8080
+uvx mcpy-cli run --source-path your_tools.py --port 8080
 
 # Or with custom options
-uvx mcp-modelservice-sdk run --source-path your_tools.py --port 9000 --host 0.0.0.0 --mcp-name CustomService
+uvx mcpy-cli run --source-path your_tools.py --port 9000 --host 0.0.0.0 --mcp-name CustomService
 ```
 
 This allows you to:
@@ -50,13 +52,13 @@ This allows you to:
 
 ## Use Cases
 
-The `mcp-modelservice-sdk` is particularly well-suited for the following scenarios:
+The `mcpy-cli` is particularly well-suited for the following scenarios:
 
 *   **Rapid Prototyping of MCP Services**: Quickly turn a directory of Python scripts or a single utility file into an MCP-accessible service without writing extensive boilerplate for a web framework.
 *   **Microservice Architectures**: Structure your project such that each Python file (or subdirectory) becomes a distinct microservice, each with its own set of MCP tools, automatically routed based on the file system structure.
 *   **Exposing Python Libraries as Network APIs**: Make existing Python libraries or collections of utility functions available over the network as MCP tools with minimal refactoring.
 *   **Internal Tooling and Automation**: Create and deploy internal tools and automation scripts as MCP services for easy access and integration within an organization.
-*   **Simplified Deployment of Python Functions**: Package Python functions into runnable services (via the `package` command) that can be deployed in environments supporting Python and the `mcp-modelservice-sdk`.
+*   **Simplified Deployment of Python Functions**: Package Python functions into runnable services (via the `package` command) that can be deployed in environments supporting Python and the `mcpy-cli`.
 *   **Developer-Friendly API Creation**: Enable developers to focus on writing Python functions, with the SDK handling the complexities of exposing them as MCP services and packaging.
 *   **Directory-Driven Tool Organization**: Leverage the automatic routing based on filesystem structure to intuitively organize and expose related sets of tools.
 

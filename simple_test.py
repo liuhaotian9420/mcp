@@ -2,7 +2,7 @@ import sys
 
 sys.path.insert(0, ".")
 
-from mcp_modelservice_sdk.cli import app
+from mcpy_cli.cli import app
 
 print("Testing packaging with new options...")
 try:

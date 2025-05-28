@@ -6,7 +6,7 @@ import time
 
 sys.path.insert(0, ".")
 
-from src.mcp_modelservice_sdk.src.app_builder import (
+from src.mcpy_cli.src.app_builder import (
     SessionToolCallCache,
     set_current_session_id,
 )

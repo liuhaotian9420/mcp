@@ -13,8 +13,8 @@ sys.path.append(project_root)
 sys.path.append(os.path.join(project_root, "src"))
 
 try:
-    from mcp_modelservice_sdk.packaging_utils import copy_source_code
-    from mcp_modelservice_sdk.packaging import build_mcp_package
+    from mcpy_cli.packaging_utils import copy_source_code
+    from mcpy_cli.packaging import build_mcp_package
 
     imports_successful = True
 except ImportError as e:
@@ -163,7 +163,7 @@ def greet_user(name: str) -> str:
         shutil.rmtree(self.temp_dir)
         shutil.rmtree(self.output_dir)
 
-    @patch("mcp_modelservice_sdk.packaging.create_mcp_application")
+    @patch("mcpy_cli.packaging.create_mcp_application")
     def test_build_mcp_package_basic(self, mock_create_app):
         """Test basic package building functionality."""
         # Mock the MCP application creation

@@ -51,7 +51,7 @@ def test_cli_help():
     print("Testing CLI help...")
     try:
         result = subprocess.run(
-            [sys.executable, "-m", "mcp_modelservice_sdk.cli", "--help"],
+            [sys.executable, "-m", "mcpy_cli.cli", "--help"],
             capture_output=True,
             text=True,
             timeout=30,
@@ -83,7 +83,7 @@ def test_cli_with_event_store():
         cmd = [
             sys.executable,
             "-m",
-            "mcp_modelservice_sdk.cli",
+            "mcpy_cli.cli",
             "--source-path",
             str(temp_dir),
             "--enable-event-store",

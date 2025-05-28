@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Test script to demonstrate SessionToolCallCache integration with MCP application."""
-from src.mcp_modelservice_sdk.src.app_builder import (
+from src.mcpy_cli.src.app_builder import (
     create_mcp_application,
     set_current_session_id,
 )

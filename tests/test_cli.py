@@ -12,7 +12,7 @@ sys.path.append(project_root)
 sys.path.append(os.path.join(project_root, "src"))
 
 try:
-    from mcp_modelservice_sdk.cli.main import app as cli_app
+    from mcpy_cli.cli.main import app as cli_app
 
     imports_successful = True
 except ImportError as e:

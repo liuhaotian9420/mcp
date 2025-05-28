@@ -4,7 +4,7 @@ Test script for the official MCP EventStore implementation.
 This script tests the SQLite-based EventStore that implements the official
 MCP EventStore interface for resumability support.
 """
-from mcp_modelservice_sdk.src.mcp_event_store import SQLiteEventStore, EventMessage
+from mcpy_cli.src.mcp_event_store import SQLiteEventStore, EventMessage
 
 import asyncio
 import logging

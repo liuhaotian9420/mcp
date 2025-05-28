@@ -31,16 +31,16 @@ install_dependencies() {
     #   echo "[WARNING] Failed to upgrade pip. Continuing with current version."
     # fi
     
-    # Install mcp_modelservice_sdk which contains our CLI
-    echo "[INFO] Installing mcp_modelservice_sdk and its dependencies..."
-    if $PIP_CMD install --no-cache-dir mcp_modelservice_sdk -i https://pypi.tuna.tsinghua.edu.cn/simple; then
-        echo "[INFO] mcp_modelservice_sdk installed successfully."
-    elif $PIP_CMD install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple mcp_modelservice_sdk; then
-        echo "[INFO] mcp_modelservice_sdk installed successfully using Tsinghua mirror."
-    elif $PIP_CMD install --no-cache-dir -i https://pypi.python.org/simple mcp_modelservice_sdk; then
-        echo "[INFO] mcp_modelservice_sdk installed successfully using Python.org mirror."
+    # Install mcpy_cli which contains our CLI
+    echo "[INFO] Installing mcpy_cli and its dependencies..."
+    if $PIP_CMD install --no-cache-dir mcpy_cli -i https://pypi.tuna.tsinghua.edu.cn/simple; then
+        echo "[INFO] mcpy_cli installed successfully."
+    elif $PIP_CMD install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple mcpy_cli; then
+        echo "[INFO] mcpy_cli installed successfully using Tsinghua mirror."
+    elif $PIP_CMD install --no-cache-dir -i https://pypi.python.org/simple mcpy_cli; then
+        echo "[INFO] mcpy_cli installed successfully using Python.org mirror."
     else
-        echo "[ERROR] Failed to install mcp_modelservice_sdk. Please check your network and pip configuration."
+        echo "[ERROR] Failed to install mcpy_cli. Please check your network and pip configuration."
         exit 1
     fi
     
@@ -57,7 +57,7 @@ install_dependencies() {
 # Function to start the service using the CLI
 start_service() {
     echo "[INFO] Starting MCP service using mcp-modelservice CLI..."
-    $PYTHON_CMD -m mcp_modelservice_sdk.cli \
+    $PYTHON_CMD -m mcpy_cli.cli \
         --source-path "user_src/simple_text_tool.py" \
         --mcp-name "MCPModelService" \
         --server-root "/mcp-server" \

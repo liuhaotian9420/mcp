@@ -12,12 +12,12 @@
 - **Python**: 3.10 或更高版本
 ---
 
-### 📦 安装 mcp-modelservice-sdk
+### 📦 安装 mcpy-cli
 
 #### 方法一：使用 pip 安装
 
 ```bash
-pip install mcp-modelservice-sdk
+pip install mcpy-cli
 ```
 
 #### 方法二：使用 uv 安装（推荐）
@@ -27,7 +27,7 @@ pip install mcp-modelservice-sdk
 pip install uv
 
 # 使用 uv 安装
-uv pip install mcp-modelservice-sdk
+uv pip install mcpy-cli
 ```
 
 ---
@@ -141,7 +141,7 @@ mcp-modelservice run --source-path tools.py --port 8080
 #### 使用 uv 启动（推荐）
 
 ```bash
-uvx mcp-modelservice-sdk run --source-path tools.py --port 8080
+uvx mcpy-cli run --source-path tools.py --port 8080
 ```
 
 你将看到如下输出：

@@ -15,12 +15,12 @@ sys.path.append(project_root)
 sys.path.append(os.path.join(project_root, "src"))
 
 try:
-    from mcp_modelservice_sdk.discovery import discover_py_files, discover_functions
+    from mcpy_cli.discovery import discover_py_files, discover_functions
 
     imports_successful = True
 except ImportError:
     print(
-        "Could not import from mcp_modelservice_sdk.discovery. Ensure package is installed or PYTHONPATH is correct."
+        "Could not import from mcpy_cli.discovery. Ensure package is installed or PYTHONPATH is correct."
     )
     imports_successful = False
 

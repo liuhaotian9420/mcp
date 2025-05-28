@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Main entry point for the mcp_modelservice_sdk package.
+Main entry point for the mcpy_cli package.
 """
 
 import sys
@@ -19,7 +19,7 @@ sys.path.insert(0, project_root)
 def _import_cli_app():
     # First try direct import
     try:
-        from src.mcp_modelservice_sdk.cli import app as cli_app
+        from src.mcpy_cli.cli import app as cli_app
 
         return cli_app
     except ImportError:

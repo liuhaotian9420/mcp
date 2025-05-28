@@ -6,8 +6,8 @@ Usage:
 """
 
 
-from mcp_modelservice_sdk.src.app_builder import create_mcp_application
-from mcp_modelservice_sdk.src.cli import run_app_with_args
+from mcpy_cli.src.app_builder import create_mcp_application
+from mcpy_cli.src.cli import run_app_with_args
 
 
 import sys

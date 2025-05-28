@@ -53,7 +53,7 @@ def import_core_modules():
     # Attempt standard direct import
     try:
         # Direct and straightforward import using the correct path
-        from mcp_modelservice_sdk.src import core as core_module
+        from mcpy_cli.src import core as core_module
 
         logger.debug("Successfully imported core module directly")
         return core_module

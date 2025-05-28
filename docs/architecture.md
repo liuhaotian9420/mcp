@@ -100,7 +100,7 @@
 - 提取并解析函数文档字符串
 - 过滤和验证可暴露的函数
 
-**代码位置**：`src/mcp_modelservice_sdk/src/discovery.py`
+**代码位置**：`src/mcpy_cli/src/discovery.py`
 
 ### 2. 🔧 应用构建器 (App Builder)
 
@@ -113,7 +113,7 @@
 - 配置中间件和错误处理
 - 构建最终的 Starlette 应用
 
-**代码位置**：`src/mcp_modelservice_sdk/src/app_builder.py`
+**代码位置**：`src/mcpy_cli/src/app_builder.py`
 
 ### 3. 🎛️ 命令行界面 (CLI)
 

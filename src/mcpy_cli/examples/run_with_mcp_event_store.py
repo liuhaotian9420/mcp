@@ -7,7 +7,7 @@ MCP EventStore interface for resumability support in FastMCP HTTP transport.
 Usage:
     python run_with_mcp_event_store.py
 """
-from mcp_modelservice_sdk.src.app_builder import create_mcp_application
+from mcpy_cli.src.app_builder import create_mcp_application
 
 import sys
 import logging
