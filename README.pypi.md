@@ -1,6 +1,4 @@
-# mcpy-cli
-
-🚀 **Effortlessly transform Python functions into production-ready MCP services**
+# 🚀 mcpy-cli: Transform Python functions into production-ready MCP services
 
 [![PyPI version](https://badge.fury.io/py/mcpy-cli.svg)](https://badge.fury.io/py/mcpy-cli)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/release/python-3100/)
@@ -11,17 +9,17 @@
 ## ✨ Key Features
 
 - 📦 **Automatic Function Discovery**: Scans Python files and detects functions without additional markup required
-- 🔄 **Dual Architecture Modes**:
+- 🚀 **Flexible Deployment Options**:
+  - `run` command with hot reload, ideal for local **development**
+  - `package` command with start scripts for production **deployment** 
+- 🔄 **An MCP of two modes**:
   - **Composed Mode**: All tools under a single endpoint with automatic namespacing
   - **Routed Mode**: Microservice-style with directory-based routing
-- 🚀 **Flexible Deployment Options**:
-  - `run` command for local development with hot reloading
-  - `package` command for production deployment with start scripts
+
 - 🌐 **Complete JSON-RPC Implementation**: Full compliance with MCP protocol specification
-- 🔧 **Interactive Web Interface**: Built-in testing page at `/mcp-server/mcp`
 - 🎨 **Type-Safe by Design**: Automatic validation using Python type hints and docstrings
 
-## 🚀 Quick Start
+## 🔥 Quick Start
 
 ### Installation
 
@@ -70,10 +68,9 @@ uvx mcpy-cli run --source-path ./ --port 8080 --reload True
 ```
 
 4. **Test your service**:
-   - Open `http://localhost:8080/mcp-server/mcp` in your browser
-   - Try calling functions with the interactive interface:
-     - In Composed mode (default): `tool_math_tools_add`, `tool_text_tools_word_count`
-     - In Routed mode: Navigate to each module's endpoint
+- Open `http://localhost:8080/mcp-server/mcp` in your browser using tools like MCP Inspector
+  - In Composed mode (default): `tool_math_tools_add`, `tool_text_tools_word_count`
+  - In Routed mode: Navigate to each module's endpoint
 
 ### Production Packaging
 
@@ -108,60 +105,10 @@ The package contains:
 - A `requirements.txt` file with all dependencies
 - README files with usage instructions
 
-## 🔧 How It Works: Technical Details
+## 🥯️ Two MCP service structures
 
-The SDK implements a sophisticated pipeline to convert Python functions to MCP services:
 
-1. **Function Discovery & Analysis**
-   - Recursively scans source directories for Python files
-   - Imports each file and extracts function objects with introspection
-   - Analyzes signatures, type annotations, and docstrings
-   - Groups functions by file for organizational structure
-
-2. **FastMCP Instance Creation**
-   - Creates FastMCP instances for each file (or group in composed mode)
-   - Builds JSON schemas from type hints using Pydantic models
-   - Registers functions with their signatures as MCP tools
-   - Handles async/sync function differences automatically
-
-3. **Architecture Configuration**
-   - **Composed Mode**: Creates a main FastMCP host with all sub-instances mounted
-     - Uses separators (+, _, .) for namespace management
-     - Handles tool naming to prevent collisions
-   - **Routed Mode**: Creates separate FastMCP instances with independent routes
-     - Maps directory structure to URL paths
-     - Maintains original function names within each module
-
-4. **Transport & Protocol Implementation**
-   - Implements JSON-RPC 2.0 for request/response
-   - Supports both SSE streaming and JSON response formats
-   - Optional event store for session persistence (SQLite-based)
-   - Middleware for CORS, sessions, and other functionality
-
-## 🔝️ Architecture Modes
-
-The SDK supports two distinct architectural patterns that determine how your Python functions are exposed as MCP tools. Each mode offers different trade-offs between simplicity, scalability, and organization.
-
-### 📋 Composed Mode (Recommended)
-
-**Implementation Details**:
-```python
-# From application_factory.py
-def _create_composed_application(mcp_instances, mcp_server_name, ...):
-    # Create a main FastMCP instance as the host
-    main_mcp = FastMCP(name=mcp_server_name)
-    
-    # Mount each file's FastMCP instance with prefixed tool names
-    for file_path, (file_mcp, route_path, tools_registered) in mcp_instances.items():
-        main_mcp.mount(
-            route_path,
-            file_mcp,
-            as_proxy=False,
-            resource_separator="+",
-            tool_separator="_",
-            prompt_separator=".",
-        )
-```
+### 📋 Composed Mode (Default)
 
 **Technical Benefits**:
 - ✅ **Single ASGI Application**: All tools are handled by one Starlette app
@@ -185,26 +132,6 @@ mcpy-cli run --source-path ./my_tools --mode composed
 ```
 
 ### 🔀 Routed Mode
-
-**Implementation Details**:
-```python
-# From application_factory.py
-def _create_routed_application(mcp_instances, mcp_service_base_path, ...):
-    # For each file's FastMCP instance, create a separate route
-    routes = []
-    for file_path, (file_mcp, route_path, tools_registered) in mcp_instances.items():
-        # Create an ASGI app for this instance
-        instance_asgi_app = create_streamable_http_app(
-            server=file_mcp,
-            streamable_http_path=mcp_service_base_path,
-            # Instance-specific configuration
-        )
-        # Mount this app at its own route path
-        routes.append(Mount(route_path, app=instance_asgi_app))
-        
-    # Create main Starlette app with all routes
-    app = Starlette(routes=routes, middleware=middleware)
-```
 
 **Technical Benefits**:
 - ✅ **True Microservices**: Each module runs as an independent MCP server
@@ -239,14 +166,6 @@ mcpy-cli run --source-path ./my_tools --mode routed
 | **Tool Naming** | Prefixed: `tool_file_function` | Original: `function` |
 | **Session State** | Shared across all tools | Isolated per module |
 | **Resource Usage** | Lower (single FastMCP instance) | Higher (multiple instances) |
-| **Startup Time** | Faster (one application) | Slower (multiple applications) |
-| **Memory Footprint** | Lower | Higher |
-| **Deployment** | Single service | Can be deployed separately |
-| **Scaling Strategy** | Vertical (scale up the service) | Horizontal (scale specific modules) |
-| **Development Focus** | Feature-rich single service | Independent specialized modules |
-| **Error Isolation** | Issues may affect all tools | Issues isolated to specific modules |
-| **Authentication** | Apply once to all tools | Can configure per module |
-| **Cross-Module Calls** | Direct (in same process) | Via HTTP (inter-process) |
 | **Use Case** | Cohesive, related functionality | Distinct, separate domains |
 
 ### 🔄 When to Choose Each Mode
@@ -331,26 +250,6 @@ EXPOSE 8080
 
 ## 📚 Client Integration
 
-### Interactive Browser Interface
-
-Every MCP service includes a built-in web interface for interactive testing:
-
-1. Start your service:
-   ```bash
-   mcpy-cli run --source-path ./my_project --port 8080
-   ```
-
-2. Open your browser and navigate to:
-   ```
-   http://localhost:8080/mcp-server/mcp
-   ```
-   
-3. You'll see a user-friendly interface that allows you to:
-   - Browse all available tools
-   - Test tools with parameter forms
-   - View JSON schema documentation
-   - See execution results
-
 ### Python Client Examples
 
 #### Direct HTTP Client (Standard Library)
@@ -384,33 +283,6 @@ def call_mcp_tool(tool_name, params, endpoint="http://localhost:8080/mcp-server/
 # Example usage with composition mode naming
 result = call_mcp_tool("tool_math_tools_add", {"a": 10, "b": 5})
 print(f"Result: {result['result']}")  # Result: 15
-```
-
-#### Requests Library Client
-```python
-import requests
-
-def call_mcp_tool(tool_name, params, endpoint="http://localhost:8080/mcp-server/mcp"):
-    response = requests.post(
-        endpoint,
-        json={
-            "jsonrpc": "2.0",
-            "method": tool_name,
-            "params": params,
-            "id": 1
-        }
-    )
-    return response.json()
-
-# Call a tool and handle errors
-try:
-    result = call_mcp_tool("tool_text_tools_word_count", {"text": "Hello MCP world!"})
-    if 'error' in result:
-        print(f"Error: {result['error']['message']}")
-    else:
-        print(f"Word count: {result['result']}")  # Word count: 3
-except Exception as e:
-    print(f"Request failed: {e}")
 ```
 
 #### FastMCP Native Client (Async)
@@ -463,6 +335,33 @@ const result = await callMcpTool('tool_math_tools_add', { a: 3, b: 7 });
 console.log(`The sum is: ${result.result}`);  // The sum is: 10
 ```
 
+## 🧀 Advanced Configuration
+
+### 1. Service Persistence
+
+`mcpy-cli` supports service persistence and state recovery through event storage (EventStore). When enabled, the service stores JSON-RPC messages, allowing execution to resume from specific event points after service interruption or restart.
+
+- **Implementation**: Default uses `SQLiteEventStore`, saving event data in a local SQLite database file.
+- **Enabling**: Start the service with the `--enable-event-store` flag.
+- **Database Path**: Specify with `--event-store-path` parameter. Default is `./mcp_event_store.db`.
+
+```bash
+# Enable event storage with custom database path
+mcpy-cli run --source-path ./my_tools --enable-event-store --event-store-path ./my_service_events.db
+```
+
+This feature is particularly useful for MCP services that need to run for extended periods or maintain session state.
+
+### 2. Caching
+
+To improve performance and reduce redundant computation, the tool provides session-level tool call caching (`SessionToolCallCache`).
+
+- **Mechanism**: This in-memory cache stores tool call results within specific user sessions. When the same tool is called again with identical parameters in the same session, results can be returned directly from the cache without re-executing the tool function.
+- **Use Case**: This cache is primarily activated and effective in "stateful JSON response mode".
+- **Lifecycle**: Cache content is bound to the user session and is cleared when the session ends or is cleared.
+
+This mechanism helps optimize response speed for tools that may be frequently called within a session.
+
 ## ⚙️ Configuration
 
 ### Command Line Options
@@ -505,59 +404,17 @@ console.log(`The sum is: ${result.result}`);  // The sum is: 10
 | `--package-workers` | Number of workers in packaged service | 1 |
 | `--mw-service` | ModelWhale service mode | True |
 
-### Environment Variables Support
-
-All configuration options can be specified via environment variables using the format `MCP_OPTION_NAME`:
-
-```bash
-# .env file example
-MCP_HOST=0.0.0.0
-MCP_PORT=9000
-MCP_SERVER_NAME=production-mcp-service
-MCP_LOG_LEVEL=INFO
-MCP_CORS_ENABLED=true
-MCP_CORS_ALLOW_ORIGINS=https://example.com,https://app.example.com
-MCP_MODE=composed
-MCP_ENABLE_EVENT_STORE=true
-```
-
-### Configuration Precedence
-
-1. Command-line arguments (highest priority)
-2. Environment variables
-3. Default values (lowest priority)
-
-## 🤝 Use Cases
-
-Perfect for:
-- **Rapid Prototyping**: Quickly expose Python functions as web services
-- **Microservices**: Convert existing Python modules to independent services
-- **API Generation**: Auto-generate REST APIs from Python functions
-- **Tool Integration**: Make Python tools accessible to MCP clients
-- **Development Testing**: Interactive testing of Python functions
-
-## 🛠️ Requirements
-
-- **Python**: 3.10 or higher
-- **Dependencies**: FastAPI, FastMCP, Pydantic, Uvicorn (auto-installed)
-
 ## 📖 Documentation & Support
 
 - **GitHub Repository**: [https://github.com/modelcontextprotocol/mcpy-cli](https://github.com/modelcontextprotocol/mcpy-cli)
-- **Full Documentation**: Available in the GitHub repository
+- **Full Documentation**: [Complete Documentation](docs/README.md)
+- **Architecture Guide**: [Architecture Design](docs/architecture.md)
+- **Best Practices**: [Best Practices Guide](docs/best-practices.md)
 - **Issue Tracking**: Report bugs and request features on GitHub
 - **Community**: Join discussions and get help
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guide](https://github.com/modelcontextprotocol/mcpy-cli/blob/main/CONTRIBUTING.md) for details.
 
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](https://github.com/modelcontextprotocol/mcpy-cli/blob/main/LICENSE) file for details.
 
 ---
-
-**Made with ❤️ for the Python and MCP communities**
-
-Ready to transform your Python functions into powerful MCP services? Install `mcpy-cli` today! 
