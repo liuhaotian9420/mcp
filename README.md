@@ -170,7 +170,7 @@ mcp-modelservice run --source-path ./my_tools --enable-event-store --event-store
 
 ### 2. 缓存
 
-为了提高性能并减少重复计算，SDK 提供了会话级别的工具调用缓存（`SessionToolCallCache`）。
+为了提高性能并减少重复计算，工具提供了会话级别的工具调用缓存（`SessionToolCallCache`）。
 
 - **工作机制**：此缓存是内存中的，它会存储在特定用户会话中工具调用的结果。当在同一会话中以相同的参数再次调用同一工具时，可以直接从缓存中返回结果，而无需重新执行工具函数。
 - **适用场景**：此缓存主要在“有状态 JSON 响应模式”（stateful JSON response mode）下激活并发挥作用。

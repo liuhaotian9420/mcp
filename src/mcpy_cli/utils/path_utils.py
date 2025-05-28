@@ -1,5 +1,5 @@
 """
-Path utilities for the MCP Modelservice SDK.
+Path utilities for the MCP-CLI.
 """
 
 import os

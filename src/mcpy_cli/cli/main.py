@@ -13,7 +13,7 @@ from .config import CommonOptions, process_optional_list_str_option
 from .commands import run_command, package_command, example_command
 
 app = typer.Typer(
-    help="""MCP Modelservice SDK CLI: Create, run, and package MCP services from your Python code using a lightweight CLI-based approach.
+    help="""MCP-CLI: Create, run, and package MCP services from your Python code using a lightweight CLI-based approach.
     The CLI supports two modes (via the '--mode' flag):
     - 'composed': Default mode. Mounts each Python file as a separate FastMCP instance under a route derived from its directory structure.
     - 'routed': Mounts all Python files under a single FastMCP instance at a single route.
@@ -131,7 +131,7 @@ def main(
     ] = False,
 ):
     """
-    MCP Modelservice SDK CLI
+    MCP-CLI CLI
 
     This CLI provides commands to create, run, and package MCP services from your Python code
     using a lightweight CLI-based approach. The CLI-based approach simplifies the packaging process

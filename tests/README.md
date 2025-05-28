@@ -1,6 +1,6 @@
-# Test Suite for MCP Modelservice SDK
+# Test Suite for MCP-CLI
 
-This directory contains the updated test suite for the MCP Modelservice SDK, reflecting the current code structure and functionality.
+This directory contains the updated test suite for the MCP-CLI, reflecting the current code structure and functionality.
 
 ## Test Structure
 

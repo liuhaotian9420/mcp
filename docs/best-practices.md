@@ -1,6 +1,6 @@
-# 📝 MCP ModelService SDK 最佳实践指南
+# 📝 MCP-CLI 最佳实践指南
 
-本指南涵盖了使用 MCP ModelService SDK 开发高质量服务的最佳实践，帮助您构建可维护、可扩展、高性能的 MCP 服务。
+本指南涵盖了使用 MCP-CLI 开发高质量服务的最佳实践，帮助您构建可维护、可扩展、高性能的 MCP 服务。
 
 ## 📋 目录
 

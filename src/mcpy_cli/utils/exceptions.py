@@ -1,5 +1,5 @@
 """
-Custom exception classes for the MCP Modelservice SDK.
+Custom exception classes for the MCP-CLI.
 """
 
 

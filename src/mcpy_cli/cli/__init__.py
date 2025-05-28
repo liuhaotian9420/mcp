@@ -1,5 +1,5 @@
 """
-CLI modules for the MCP Modelservice SDK.
+CLI modules for the MCP-CLI.
 """
 
 from .main import app

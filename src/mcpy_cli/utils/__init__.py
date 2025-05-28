@@ -1,5 +1,5 @@
 """
-Shared utilities for the MCP Modelservice SDK.
+Shared utilities for the MCP-CLI.
 """
 
 from .exceptions import TransformationError

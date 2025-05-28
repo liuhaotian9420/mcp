@@ -48,7 +48,7 @@ def example_command(
     The service runs on localhost:8080 and optionally launches the MCP Inspector
     for interactive testing and debugging.
     """
-    cli_logger.info("🚀 Starting MCP Modelservice SDK Example")
+    cli_logger.info("🚀 Starting MCP-CLI Example")
     cli_logger.info("This example demonstrates a simple arithmetic MCP service")
 
     # Create temporary directory for example files
@@ -59,7 +59,7 @@ def example_command(
         # Create the example server file
         example_content = '''"""
 Example MCP service with arithmetic operations using streamable HTTP transport.
-This demonstrates the basic functionality of the MCP Modelservice SDK.
+This demonstrates the basic functionality of the MCP-CLI.
 """
 
 from fastmcp import FastMCP

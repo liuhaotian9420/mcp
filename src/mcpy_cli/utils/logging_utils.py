@@ -1,5 +1,5 @@
 """
-Logging utilities for the MCP Modelservice SDK.
+Logging utilities for the MCP-CLI.
 """
 
 import logging

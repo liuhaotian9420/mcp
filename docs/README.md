@@ -1,6 +1,6 @@
-# 📚 MCP ModelService SDK 完整文档
+# 📚 MCP-CLI 完整文档
 
-欢迎使用 MCP ModelService SDK 官方文档！本文档将为您提供全面的使用指南、最佳实践和高级配置选项。
+欢迎使用 MCP-CLI 官方文档！本文档将为您提供全面的使用指南、最佳实践和高级配置选项。
 
 ## 📋 文档目录
 
@@ -68,7 +68,7 @@
 
 ---
 
-**感谢您选择 MCP ModelService SDK！** 🎉
+**感谢您选择 MCP-CLI！** 🎉
 
 如有任何疑问，请随时通过以下方式联系我们：
 - GitHub Issues: [提交问题](https://github.com/your-project/issues)
