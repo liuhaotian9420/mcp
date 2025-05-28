@@ -41,7 +41,7 @@ jobs:
         ruff check .
     - name: Type check with mypy
       run: |
-        mypy --ignore-missing-imports src/mcp_modelservice_sdk tests
+        mypy --ignore-missing-imports src/mcpy_cli tests
     - name: Test with unittest
       run: |
         # Run the tests with improved error handling
