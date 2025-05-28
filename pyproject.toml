@@ -44,7 +44,7 @@ Documentation = "https://github.com/liuhaotian9420/mcp/docs"
 "Bug Tracker" = "https://github.com/liuhaotian9420/mcp/issues"
 
 [project.scripts]
-mcp-modelservice = "mcpy_cli.cli:app"
+mcpy_cli = "mcpy_cli.cli:app"
 
 [project.optional-dependencies]
 test = [
