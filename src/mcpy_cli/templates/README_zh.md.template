@@ -1,202 +1,158 @@
-# 轻松构建与部署 MCP 服务：`{package_name}` 服务指南
+# 欢迎使用 {package_name} 服务！
 
 *[English Version](README.md)*
 
-欢迎使用您的 `{package_name}` MCP 服务！此服务由 `mcpy-cli` 生成，提供了一种简单的方式来部署和与您的 MCP（模型上下文协议）工具进行交互。
+本服务由 `{mcp_server_name}`强力驱动，旨在为您提供一套工具，以协助您完成 **{service_purpose_description}**。
+<!-- 打包者请注意：请将 '{service_purpose_description}' 替换为对本服务用途的简明用户友好描述。 -->
 
-## 什么是此服务？
+它使用 `mcpy-cli` 进行打包，以便直接与模型上下文协议 (MCP) 工具进行交互。
 
-这是一个即可部署的 MCP 服务，包含：
-- **预打包工具**：您的 Python 函数转换为 MCP 工具
-- **一键部署**：简单的启动脚本，立即可用
-- **自动路由**：{architecture_description}
-- **跨平台兼容**：支持多种传输协议和部署环境
+## 服务内容
 
-## 快速开始
+本服务提供：
+- 🚀 **即用型工具**：获取强大的功能，用于{service_purpose_description_short}。 <!-- 打包者请注意：请替换为非常简短的描述（例如“图像分析”，“文本生成”） -->
+- 🐍 **便捷的 Python 集成**：从您的 Python 脚本快速调用工具。
+- 🧪 **交互式测试**：直接在浏览器中探索工具。
 
-### 1. 环境要求
+## 快速上手：使用工具
 
-- Python >= 3.10
-- FastMCP 已安装（启动脚本会自动处理）
+您可以按照以下步骤开始使用本服务提供的工具：
 
-### 2. 运行服务
+### 1. 环境要求 (客户端环境)
 
-```bash
-# 使脚本可执行（Linux/Mac）
-chmod +x start.sh
+- **Python 3.7+**：确保您已安装兼容的 Python 版本。
+- **`requests` 库**：您需要此库向服务发出 HTTP 请求。如果尚未安装，请运行：
+  ```bash
+  pip install requests
+  ```
 
-# 启动服务
-./start.sh
-```
+### 2. 服务接入点
 
-服务将在以下地址可用：**{service_url_example}**
-
-### 3. 测试您的服务
-
-启动后，访问交互式测试页面：
-```
-{service_url_example}/mcp
-```
-
-## 服务详情
-
-### 架构信息
-
-- **服务名称**：`{mcp_server_name}`
-- **服务器根路径**：`{mcp_server_root_path}`
-- **MCP 基础路径**：`{mcp_service_base_path}`
+服务地址：
 - **基础 URL**：`{service_url_example}`
-- **架构类型**：{architecture_description}
+- **交互式测试页面**：在浏览器中访问 `{service_url_example}/mcp` 查看可用工具并进行交互式测试。
 
-{architecture_detailed_explanation}
+### 3. 调用工具 (Python 示例)
 
-## 可用工具
-
-{tool_documentation_section}
-
-## 客户端集成
-
-### 使用浏览器界面
-
-1. **交互式测试**：访问 `{service_url_example}/mcp` 进行直接测试
-
-### 使用 Python 客户端
+您可以使用简单的 Python 脚本调用任何工具。示例如下：
 
 ```python
 import requests
 import json
 
-def call_mcp_tool(tool_name, parameters, endpoint_url="{service_url_example}"):
-    """使用给定参数调用 MCP 工具"""
-    payload = {{
+# --- 配置信息 ---
+SERVICE_BASE_URL = "{service_url_example}"  # 如果服务托管在其他地方，请替换此URL
+TOOL_NAME = "your_tool_name_here"  # 请替换为实际的工具名称 (参见“可用工具”部分)
+PARAMETERS = {
+    "param1": "value1",  # 请替换为工具所需的实际参数
+    "param2": 123
+}
+
+# --- 辅助函数 ---
+def call_mcp_tool(base_url, tool_name, params):
+    """调用 MCP 工具并返回 JSON 响应"""
+    endpoint = f"{base_url}/mcp"
+    payload = {
         "jsonrpc": "2.0",
         "method": tool_name,
-        "params": parameters,
-        "id": 1
-    }}
-    response = requests.post(f"{{endpoint_url}}/mcp", json=payload)
-    return response.json()
+        "params": params,
+        "id": 1  # 可以是任何唯一ID
+    }
+    headers = {'Content-Type': 'application/json'}
 
-# 使用示例
-result = call_mcp_tool("your_function_name", {{"param1": "value1", "param2": "value2"}})
-print(result)
+    print(f"尝试在 '{endpoint}' 调用工具 '{tool_name}'，参数为: {params}")
+
+    try:
+        response = requests.post(endpoint, json=payload, headers=headers, timeout=30) # 30秒超时
+        response.raise_for_status()  # 针对错误的响应 (4XX 或 5XX) 抛出 HTTPError
+        return response.json()
+    except requests.exceptions.HTTPError as http_err:
+        print(f"发生 HTTP 错误: {http_err}")
+        print(f"响应内容: {response.content}")
+    except requests.exceptions.ConnectionError as conn_err:
+        print(f"发生连接错误: {conn_err}")
+    except requests.exceptions.Timeout as timeout_err:
+        print(f"发生超时错误: {timeout_err}")
+    except requests.exceptions.RequestException as req_err:
+        print(f"请求过程中发生意外错误: {req_err}")
+    except json.JSONDecodeError:
+        print(f"解析 JSON 响应失败。原始响应: {response.text}")
+    return None
+
+# --- 主执行逻辑 ---
+if __name__ == "__main__":
+    print(f"正在调用 MCP 服务 '{TOOL_NAME}'...")
+    result = call_mcp_tool(SERVICE_BASE_URL, TOOL_NAME, PARAMETERS)
+
+    if result:
+        print("\n--- 服务响应 ---")
+        if 'result' in result:
+            print("调用成功!")
+            print(json.dumps(result['result'], indent=2, ensure_ascii=False))
+        elif 'error' in result:
+            print("服务返回错误:")
+            print(json.dumps(result['error'], indent=2, ensure_ascii=False))
+        else:
+            print("意外的响应格式:")
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+    else:
+        print("\n未收到响应或调用过程中发生错误。")
+
 ```
 
-### 使用 FastMCP 客户端
+**请记得：**
+- 将 `your_tool_name_here` 替换为您想使用的工具的实际名称。
+- 使用该工具所需的正确输入更新 `PARAMETERS` 字典。
+
+### (可选) 使用 FastMCP 客户端
+
+如果您更喜欢并且已安装 `fastmcp` 库 (`pip install fastmcp`)，您也可以使用其客户端：
 
 ```python
-from fastmcp import FastMCP
-
-# 连接到您的服务
-client = FastMCP("{service_url_example}")
-
-# 列出可用工具
-tools = await client.list_tools()
-
-# 调用工具
-result = await client.call_tool("your_function_name", {{"param1": "value1"}})
+# import asyncio
+# from fastmcp import FastMCP
+#
+# async def main():
+#     client = FastMCP("{service_url_example}")
+#     try:
+#         # 列出可用工具
+#         # tools = await client.list_tools()
+#         # print("可用工具:", tools)
+#
+#         # 调用特定工具
+#         # result = await client.call_tool("your_tool_name_here", {"param1": "value1"})
+#         # print("工具结果:", result)
+#     except Exception as e:
+#         print(f"发生错误: {e}")
+#     finally:
+#         await client.close()
+#
+# if __name__ == "__main__":
+#     asyncio.run(main())
 ```
 
-## 配置与自定义
+## 可用工具
 
-### 环境变量
+以下是本服务中可用的工具列表。此部分是根据打包的 Python 函数自动生成的。
 
-创建 `.env` 文件来自定义您的服务：
+{tool_documentation_section}
 
-```env
-# 服务配置
-HOST=127.0.0.1
-PORT=8080
-MCP_SERVER_NAME={mcp_server_name}
+## 基本故障排除 (客户端)
 
-# 日志
-LOG_LEVEL=INFO
-```
+如果您在尝试调用工具时遇到问题：
 
-### 修改依赖项
+1.  **检查服务 URL**：确保您脚本中的 `SERVICE_BASE_URL` 与提供的一致 (`{service_url_example}`)。
+2.  **验证工具名称**：对照“可用工具”列表仔细检查工具名称。名称区分大小写。
+3.  **检查参数**：确保您发送的参数与工具期望的签名（名称、类型和参数数量）匹配。
+4.  **网络连接**：确认您可以从客户端计算机访问服务接入点。
+5.  **检查服务器日志 (如果可访问)**：如果您可以访问运行此服务的服务器日志，它们可能会提供有关错误的更多详细信息。
+6.  **交互式测试页面**：使用 `{service_url_example}/mcp` 页面直接测试工具。这有助于判断问题是出在您的客户端代码还是工具本身。
 
-1. **添加 Python 包**：更新 `requirements.txt` 或修改 `start.sh`
-2. **环境设置**：根据需要修改启动脚本
-3. **服务配置**：编辑 `main.py` 进行高级自定义
+## 支持
 
-### 目录结构
-
-您的服务遵循此组织结构：
-```
-{package_name}/
-├── project/
-│   ├── start.sh             # 启动脚本
-│   ├── README.md            # 此文档
-│   ├── {source_structure}   # 您的原始代码结构
-│   └── requirements.txt     # Python 依赖项
-```
-
-## 生产部署
-
-### Docker 部署
-
-```dockerfile
-FROM python:3.10-slim
-
-WORKDIR /app
-COPY . .
-
-RUN pip install -r requirements.txt
-
-EXPOSE 8080
-
-CMD ["python", "main.py"]
-```
-
-### 云部署
-
-该服务兼容：
-- **AWS Lambda**：通过无服务器适配器
-- **Google Cloud Run**：可容器化
-- **Azure 容器实例**：直接部署
-
-## 故障排除
-
-### 服务无法启动？
-
-1. **检查端口可用性**：尝试使用 `--port 9000` 指定其他端口
-2. **验证 Python 代码**：确保您的函数中没有语法错误
-3. **检查依赖项**：运行 `pip install -r requirements.txt`
-4. **查看日志**：检查控制台输出以获取具体错误信息
-
-### 工具无法工作？
-
-1. **验证函数签名**：确保有正确的类型提示和文档字符串
-2. **检查参数**：验证参数名称和类型符合预期
-3. **本地测试**：使用 `/mcp` 的交互式界面
-
-### 性能问题？
-
-1. **监控资源**：检查 CPU 和内存使用情况
-2. **优化函数**：检查并优化您的 Python 代码
-3. **水平扩展**：在负载均衡器后部署多个实例
-
-## 更新与维护
-
-### 更新您的代码
-
-1. 替换源目录中的文件
-2. 重启服务：`./start.sh`
-3. 使用交互式界面进行测试
-
-### 监控
-
-在以下位置监控您的服务健康状况：
-- **日志**：检查控制台输出或日志文件
-
-## 支持与资源
-
-- **生成工具**：[mcpy-cli](https://github.com/liuhaotian9420/mcp(https://github.com/liuhaotian9420/mcp)
-- **完整文档**：[完整文档](https://github.com/liuhaotian9420/mcp/docs)
-- **问题反馈**：[报告问题](https://github.com/liuhaotian9420/mcp/issues)
+-   有关此 `{package_name}` 服务中**工具功能**的问题或疑问，请联系向您提供此服务的人员或团队。
+-   如果您怀疑 `mcpy-cli` **打包工具本身**存在问题，您可以在 [mcpy-cli GitHub 仓库](https://github.com/liuhaotian9420/mcp) 找到更多信息或报告问题。
 
 ---
 
-  如有任何问题或建议，欢迎随时联系我们。
-
-*由 mcpy-cli v{sdk_version} 生成* 
+🎉 祝您使用愉快！

@@ -11,6 +11,8 @@
 - [性能对比分析](#性能对比分析)
 - [选择决策矩阵](#选择决策矩阵)
 - [迁移指南](#迁移指南)
+- [实际项目中的切换与配置](#实际项目中的切换与配置)
+- [典型用例代码片段](#典型用例代码片段)
 
 ## 模式概览
 
@@ -333,13 +335,13 @@ result = await math_client.call_tool("add", params)
 ```yaml
 # Composed 模式监控
 endpoints:
-  - http://localhost:8080/mcp-server/mcp/health
+  - http://localhost:8080/mcp-server/mcp
 
 # Routed 模式监控  
 endpoints:
-  - http://localhost:8080/math_utils/health
-  - http://localhost:8080/text_utils/health
-  - http://localhost:8080/data_utils/health
+  - http://localhost:8080/math_utils
+  - http://localhost:8080/text_utils
+  - http://localhost:8080/data_utils
 ```
 
 ### 从 Routed 迁移到 Composed
@@ -358,11 +360,39 @@ endpoints:
 ```python
 # 多客户端 → 单客户端
 # math_client = FastMCP("http://localhost:8080/math_utils")
-# text_client = FastMCP("http://localhost:8080/text_utils")
+# text_client = FastMCP("http://localhost:8088080/text_utils")
 
 # 统一客户端
 client = FastMCP("http://localhost:8080/mcp-server/mcp")
 ```
+
+## 实际项目中的切换与配置
+
+- 通过 CLI 参数 `--mode composed`（默认）或 `--mode routed` 进行切换：
+  ```powershell
+  mcpy-cli run --source-path my_dir --mode composed
+  mcpy-cli run --source-path my_dir --mode routed
+  ```
+- Composed 适合工具较多、统一入口的场景，Routed 适合多团队协作、模块独立部署。
+- 相关实现详见 `src/mcpy_cli/app_builder/application_factory.py`。
+
+## 典型用例代码片段
+
+### Composed 模式
+```python
+# 自动将 my_dir 下所有工具组合到一个服务实例
+mcpy-cli run --source-path my_dir --mode composed
+```
+
+### Routed 模式
+```python
+# 每个 Python 文件独立挂载为一个服务端点
+mcpy-cli run --source-path my_dir --mode routed
+```
+
+---
+
+如需更灵活的挂载方式，可参考 `src/mcp-tutorial/examples/test_composing.py`。
 
 ## 🎯 最佳实践建议
 
@@ -401,23 +431,13 @@ client = FastMCP("http://localhost:8080/mcp-server/mcp")
    /api/v1/external  # 外部API集成
    ```
 
-2. **健康检查策略**
-   ```python
-   # 为每个路由添加健康检查
-   @app.get("/math/health")
-   async def math_health():
-       return {"status": "healthy", "module": "math"}
-   ```
-
-3. **服务发现配置**
+2. **服务发现配置**
    ```yaml
    services:
      math-service:
        url: http://localhost:8080/math
-       health: http://localhost:8080/math/health
      text-service:
-       url: http://localhost:8080/text  
-       health: http://localhost:8080/text/health
+       url: http://localhost:8080/text
    ```
 
 ---
@@ -430,4 +450,4 @@ client = FastMCP("http://localhost:8080/mcp-server/mcp")
 - **大型项目、团队协作**：选择 **Routed 模式**  
 - **不确定时**：从 **Composed 模式** 开始，后续可迁移到 **Routed 模式**
 
-记住，架构选择没有绝对的对错，只有是否适合当前的项目需求和团队情况。随着项目的发展，您可以根据实际需要调整架构模式。 
+记住，架构选择没有绝对的对错，只有是否适合当前的项目需求和团队情况。随着项目的发展，您可以根据实际需要调整架构模式。

@@ -66,7 +66,7 @@ def main(
         typer.Option(
             help="Name for the FastMCP server.", rich_help_panel="Service Configuration"
         ),
-    ] = "MCPModelService",
+    ] = "MCPY-CLI",
     server_root: Annotated[
         str,
         typer.Option(
