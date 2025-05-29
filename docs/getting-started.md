@@ -557,9 +557,7 @@ python main.py
 
 - 📖 学习更多：查看 [架构设计指南](architecture.md) 了解系统原理
 - 🛠️ 最佳实践：阅读 [最佳实践指南](best-practices.md) 优化代码质量
-- 🔧 高级配置：探索 [配置管理](configuration/) 了解更多选项
-- 🚀 生产部署：查看 [部署指南](deployment/) 学习生产环境部署
-- 🧪 示例项目：参考 [示例项目](examples/) 获取更多灵感
+- 🧪 查看教程：参考 [详细教程](tutorial.md) 获取更多实例
 
 ---
 
@@ -567,8 +565,8 @@ python main.py
 
 如果你有任何问题，可以：
 
-- 查看 [常见问题](best-practices/faq.md)
-- 提交 [Issue](https://github.com/your-project/issues)
+- 查看 [常见问题](qa.md)
+- 阅读 [架构文档](architecture.md) 了解更多技术细节
 
 ---
 
