@@ -25,7 +25,7 @@ class MockFastMCP:
 
         return decorator
 
-    def http_app(self, path=None):
+    def http_app(self, path=None, transport=None):
         """Return a mock app."""
         return Starlette()
 

@@ -128,6 +128,7 @@ def _generate_start_sh_content(
     event_store_path: Optional[str] = None,
     stateless_http: bool = False,
     json_response: bool = False,
+    legacy_sse: bool = False,
 ) -> str:
     """
     Generate a start.sh script that directly uses the CLI to run the service.
@@ -154,6 +155,7 @@ def _generate_start_sh_content(
         event_store_path: Optional custom path for the event store database.
         stateless_http: Whether to enable stateless HTTP mode.
         json_response: Whether to use JSON response format instead of SSE.
+        legacy_sse: Whether to enable legacy SSE mode.
 
     Returns:
         The content of the start.sh script.
@@ -199,6 +201,10 @@ def _generate_start_sh_content(
 
     if json_response:
         cli_flags.append("--json-response")
+
+    # Handle legacy SSE flag
+    if legacy_sse:
+        cli_flags.append("--legacy-sse")
 
     # Handle reload and workers for uvicorn
     uvicorn_flags = []

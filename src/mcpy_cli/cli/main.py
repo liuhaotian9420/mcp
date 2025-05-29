@@ -129,6 +129,14 @@ def main(
             rich_help_panel="Transport Configuration",
         ),
     ] = False,
+    legacy_sse: Annotated[
+        bool,
+        typer.Option(
+            "--legacy-sse",
+            help="Use legacy SSE transport instead of modern streamable HTTP (deprecated).",
+            rich_help_panel="Transport Configuration",
+        ),
+    ] = False,
 ):
     """
     MCP-CLI CLI
@@ -160,6 +168,7 @@ def main(
         event_store_path=event_store_path,
         stateless_http=stateless_http,
         json_response=json_response,
+        legacy_sse=legacy_sse,
     )
     ctx.obj = common_obj
 

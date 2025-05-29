@@ -43,6 +43,7 @@ def build_mcp_package(
     event_store_path: Optional[str],
     stateless_http: bool,
     json_response: bool,
+    legacy_sse: bool = False,
 ):
     print("DEBUG_PACKAGING: Entered build_mcp_package function.")
     # Use the provided logger for packaging messages
@@ -139,6 +140,7 @@ def build_mcp_package(
             event_store_path=event_store_path,
             stateless_http=stateless_http,
             json_response=json_response,
+            legacy_sse=legacy_sse,
         )
 
         # Create a requirements.txt file for user dependencies if needed

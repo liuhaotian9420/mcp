@@ -1,0 +1,62 @@
+                                                                                                           
+ Usage: python -m mcpy_cli [OPTIONS] COMMAND [ARGS]...                                                     
+                                                                                                           
+ MCP-CLI: Create, run, and package MCP services from your Python code using a lightweight CLI-based        
+ approach. The CLI supports two modes (via the '--mode' flag): - 'composed': Default mode. Mounts each     
+ Python file as a separate FastMCP instance under a route derived from its directory structure. -          
+ 'routed': Mounts all Python files under a single FastMCP instance at a single route.                      
+                                                                                                           
+                                                                                                           
++- Options -----------------------------------------------------------------------------------------------+
+| --help          Show this message and exit.                                                             |
++---------------------------------------------------------------------------------------------------------+
++- Source Configuration ----------------------------------------------------------------------------------+
+| --source-path        TEXT  Path to the Python file or directory containing functions. [default: ./]     |
++---------------------------------------------------------------------------------------------------------+
++- Service Configuration ---------------------------------------------------------------------------------+
+| --log-level            TEXT  Logging level for the SDK and server (e.g., info, debug). [default: info]  |
+| --functions    -f      TEXT  Comma-separated list of specific function names to expose. If not          |
+|                              provided, all discoverable functions are exposed.                          |
+|                              [default: None]                                                            |
+| --mcp-name             TEXT  Name for the FastMCP server. [default: MCPY-CLI]                           |
+| --server-root          TEXT  Root path for the MCP service group in Starlette (e.g., /api).             |
+|                              [default: /mcp-server]                                                     |
+| --mcp-base             TEXT  Base path for MCP protocol endpoints (e.g., /mcp). [default: /mcp]         |
+| --mode                 TEXT  Mode for the MCP application. Currently supports 'composed' and 'routes'.  |
+|                              [default: composed]                                                        |
++---------------------------------------------------------------------------------------------------------+
++- Network Configuration ---------------------------------------------------------------------------------+
+| --cors-enabled          --no-cors-enabled          Enable CORS middleware. [default: cors-enabled]      |
+| --cors-allow-origins                         TEXT  Comma-separated list of allowed CORS origins (e.g.   |
+|                                                    "*", "http://localhost:3000"). Default allows all if |
+|                                                    CORS is enabled.                                     |
+|                                                    [default: None]                                      |
++---------------------------------------------------------------------------------------------------------+
++- Event Store Configuration -----------------------------------------------------------------------------+
+| --enable-event-store    --no-enable-event-store          Enable SQLite-based event store for            |
+|                                                          resumability support in FastMCP HTTP           |
+|                                                          transport. Only applicable when json_response  |
+|                                                          is False (SSE mode).                           |
+|                                                          [default: no-enable-event-store]               |
+| --event-store-path                                 TEXT  Custom path for the SQLite event store         |
+|                                                          database file. If not specified, defaults to   |
+|                                                          './mcp_event_store.db'.                        |
+|                                                          [default: None]                                |
++---------------------------------------------------------------------------------------------------------+
++- Transport Configuration -------------------------------------------------------------------------------+
+| --stateless-http    --no-stateless-http      Enable stateless HTTP mode where each request creates a    |
+|                                              fresh transport with no session tracking. Default is       |
+|                                              stateful mode.                                             |
+|                                              [default: no-stateless-http]                               |
+| --json-response     --no-json-response       Use JSON response format instead of Server-Sent Events     |
+|                                              (SSE) streaming. Default is SSE mode.                      |
+|                                              [default: no-json-response]                                |
+| --legacy-sse                                 Use legacy SSE transport instead of modern streamable HTTP |
+|                                              (deprecated).                                              |
++---------------------------------------------------------------------------------------------------------+
++- Commands ----------------------------------------------------------------------------------------------+
+| run       Run an MCP service locally using Uvicorn.                                                     |
+| package   Package an MCP service into a zip file for deployment using a lightweight CLI-based approach. |
+| example   Run an introductory example MCP service with arithmetic operations.                           |
++---------------------------------------------------------------------------------------------------------+
+

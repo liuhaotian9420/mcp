@@ -84,6 +84,19 @@ def run_command(
         )
         sys.exit(1)
 
+    # Validate legacy SSE mode compatibility
+    if common_opts.legacy_sse:
+        if common_opts.json_response:
+            cli_logger.error(
+                "Legacy SSE mode is incompatible with JSON response mode. Please disable --json-response when using --legacy-sse."
+            )
+            sys.exit(1)
+        if common_opts.stateless_http:
+            cli_logger.error(
+                "Legacy SSE mode is incompatible with stateless HTTP mode. Please disable --stateless-http when using --legacy-sse."
+            )
+            sys.exit(1)
+
     # Log transport configuration
     transport_mode = "stateless" if common_opts.stateless_http else "stateful"
     response_format = "JSON" if common_opts.json_response else "SSE"
@@ -147,6 +160,7 @@ def run_command(
             event_store_path=common_opts.event_store_path,
             stateless_http=common_opts.stateless_http,
             json_response=common_opts.json_response,
+            legacy_sse=common_opts.legacy_sse,
         )
 
         if mcp_app is None and not has_fastmcp:

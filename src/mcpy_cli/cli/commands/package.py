@@ -122,9 +122,24 @@ def package_command(
         )
         sys.exit(1)
 
+    # Validate legacy SSE mode compatibility for packaging
+    if common_opts.legacy_sse:
+        if common_opts.json_response:
+            cli_logger.error(
+                "Legacy SSE mode is incompatible with JSON response mode. Please disable --json-response when using --legacy-sse."
+            )
+            sys.exit(1)
+        if common_opts.stateless_http:
+            cli_logger.error(
+                "Legacy SSE mode is incompatible with stateless HTTP mode. Please disable --stateless-http when using --legacy-sse."
+            )
+            sys.exit(1)
+
     # Log transport configuration for packaging
     transport_mode = "stateless" if common_opts.stateless_http else "stateful"
     response_format = "JSON" if common_opts.json_response else "SSE"
+    if common_opts.legacy_sse:
+        response_format = "Legacy SSE"
     cli_logger.info(
         f"Package will use transport mode: {transport_mode}, Response format: {response_format}"
     )
@@ -167,6 +182,7 @@ def package_command(
             event_store_path=common_opts.event_store_path,
             stateless_http=common_opts.stateless_http,
             json_response=common_opts.json_response,
+            legacy_sse=common_opts.legacy_sse,
         )
         cli_logger.info(
             f"Successfully packaged MCP service into '{package_name}.zip' using the CLI-based approach."

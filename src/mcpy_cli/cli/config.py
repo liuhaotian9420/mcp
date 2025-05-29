@@ -23,6 +23,7 @@ class CommonOptions:
         event_store_path: Optional[str] = None,
         stateless_http: bool = False,
         json_response: bool = False,
+        legacy_sse: bool = False,
     ):
         self.source_path = source_path
         self.log_level = log_level
@@ -37,6 +38,7 @@ class CommonOptions:
         self.event_store_path = event_store_path
         self.stateless_http = stateless_http
         self.json_response = json_response
+        self.legacy_sse = legacy_sse
 
 
 def process_optional_list_str_option(

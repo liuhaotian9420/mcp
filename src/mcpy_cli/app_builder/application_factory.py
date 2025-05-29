@@ -49,6 +49,7 @@ def create_mcp_application(
     event_store_path: Optional[str] = None,
     stateless_http: bool = False,
     json_response: bool = False,
+    legacy_sse: bool = False,
 ) -> Starlette:
     """
     Creates a Starlette application with multiple FastMCP instances.
@@ -62,6 +63,17 @@ def create_mcp_application(
         raise TransformationError(
             "Event store can only be used with SSE mode (json_response=False)."
         )
+
+    # Validate legacy SSE mode compatibility
+    if legacy_sse:
+        if json_response:
+            raise TransformationError(
+                "Legacy SSE mode is incompatible with JSON response mode. Please disable --json-response when using --legacy-sse."
+            )
+        if stateless_http:
+            raise TransformationError(
+                "Legacy SSE mode is incompatible with stateless HTTP mode. Please disable --stateless-http when using --legacy-sse."
+            )
 
     # Discover and group functions by file
     functions_by_file, base_dir = discover_and_group_functions(
@@ -124,6 +136,7 @@ def create_mcp_application(
             json_response,
             stateless_http,
             tool_call_cache,
+            legacy_sse,
         )
         return starlette_app
     elif mode == "routed":
@@ -135,6 +148,7 @@ def create_mcp_application(
             json_response,
             stateless_http,
             tool_call_cache,
+            legacy_sse,
         )
         return starlette_app
     else:
@@ -151,6 +165,7 @@ def _create_composed_application(
     json_response,
     stateless_http,
     tool_call_cache,
+    legacy_sse,
 ):
     """Create a composed application."""
     FastMCP = get_fastmcp_class()
@@ -172,17 +187,26 @@ def _create_composed_application(
             logger.error(f"Failed to mount FastMCP instance '{file_mcp.name}': {e}")
 
     # Create the ASGI app
-    from fastmcp.server.http import create_streamable_http_app
+    if legacy_sse:
+        # Use legacy SSE transport via FastMCP's http_app method
+        main_asgi_app = main_mcp.http_app(
+            transport="sse",
+            path=mcp_service_base_path
+        )
+        logger.info("Using legacy SSE transport via FastMCP.http_app")
+    else:
+        # Use modern streamable HTTP transport
+        from fastmcp.server.http import create_streamable_http_app
 
-    # Cast to Any to avoid type issues with MockFastMCP vs FastMCP
-    main_asgi_app = create_streamable_http_app(
-        server=cast(Any, main_mcp),
-        streamable_http_path=mcp_service_base_path,
-        event_store=event_store,
-        json_response=json_response,
-        stateless_http=stateless_http,
-        middleware=middleware if middleware else None,
-    )
+        # Cast to Any to avoid type issues with MockFastMCP vs FastMCP
+        main_asgi_app = create_streamable_http_app(
+            server=cast(Any, main_mcp),
+            streamable_http_path=mcp_service_base_path,
+            event_store=event_store,
+            json_response=json_response,
+            stateless_http=stateless_http,
+            middleware=middleware if middleware else None,
+        )
 
     routes = [Mount(mcp_server_root_path, app=main_asgi_app)]
     app = Starlette(
@@ -210,21 +234,31 @@ def _create_routed_application(
     json_response,
     stateless_http,
     tool_call_cache,
+    legacy_sse,
 ):
     """Create a routed application."""
     routes = []
     apps = []
 
     for file_path, (file_mcp, route_path, tools_registered) in mcp_instances.items():
-        from fastmcp.server.http import create_streamable_http_app
+        if legacy_sse:
+            # Use legacy SSE transport via FastMCP's http_app method
+            file_app = file_mcp.http_app(
+                transport="sse",
+                path=mcp_service_base_path
+            )
+            logger.info(f"Using legacy SSE transport for '{file_mcp.name}' via FastMCP.http_app")
+        else:
+            # Use modern streamable HTTP transport
+            from fastmcp.server.http import create_streamable_http_app
 
-        file_app = create_streamable_http_app(
-            server=cast(Any, file_mcp),
-            streamable_http_path=mcp_service_base_path,
-            event_store=event_store,
-            json_response=json_response,
-            stateless_http=stateless_http,
-        )
+            file_app = create_streamable_http_app(
+                server=cast(Any, file_mcp),
+                streamable_http_path=mcp_service_base_path,
+                event_store=event_store,
+                json_response=json_response,
+                stateless_http=stateless_http,
+            )
         routes.append(Mount("/" + route_path, app=file_app))
         apps.append(file_app)
 
