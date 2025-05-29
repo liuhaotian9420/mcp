@@ -6,13 +6,14 @@ import os
 import sys
 import logging
 from types import ModuleType
+from typing import Any
 import importlib.util
 
 # Configure a logger for the CLI
 logger = logging.getLogger("mcp_sdk_cli.imports")
 
 
-def import_core_modules() -> ModuleType:
+def import_core_modules() -> ModuleType | Any:
     """
     Import the core modules for the MCP CLI.
     
