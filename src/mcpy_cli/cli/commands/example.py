@@ -57,6 +57,22 @@ def example_command(
     cli_logger.info("                   This provides a visual interface for testing your MCP tools")
     cli_logger.info("  --inspector-port: Set the port for the MCP Inspector UI (default: 6274)")
     cli_logger.info("                   Change this if the default port is already in use")
+    
+    # Add information about the MCP Inspector
+    cli_logger.info("\n🔍 About MCP Inspector:")
+    cli_logger.info("  The MCP Inspector is a web-based UI tool for testing and debugging MCP services")
+    cli_logger.info("  It allows you to:")
+    cli_logger.info("    • Discover available tools in your MCP service")
+    cli_logger.info("    • Test tools with different parameters")
+    cli_logger.info("    • View request/response history")
+    cli_logger.info("    • Debug your MCP service interactively")
+    
+    # Add installation instructions for MCP Inspector
+    cli_logger.info("\n⚙️ Installing MCP Inspector:")
+    cli_logger.info("  The MCP Inspector requires Node.js to be installed on your system")
+    cli_logger.info("  1. Install Node.js from https://nodejs.org/ (version 14 or later)")
+    cli_logger.info("  2. The Inspector will be automatically installed via npx when needed")
+    cli_logger.info("  3. You can also install it globally with: npm install -g @modelcontextprotocol/inspector")
 
     # Create temporary directory for example files
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -234,6 +250,17 @@ if __name__ == "__main__":
                 cli_logger.info(
                     "You can still test the service directly at http://localhost:8081/mcp"
                 )
+                # Add detailed installation instructions when npx is not found
+                cli_logger.info("\n📥 To install Node.js and npm:")
+                cli_logger.info("  1. Download from https://nodejs.org/ (LTS version recommended)")
+                cli_logger.info("  2. Follow the installation instructions for your operating system")
+                cli_logger.info("  3. Restart your terminal/command prompt after installation")
+                cli_logger.info("  4. Verify installation with: node --version && npm --version")
+                cli_logger.info("  5. Run this command again with --with-inspector")
+                cli_logger.info("\n🔄 Alternative installation methods:")
+                cli_logger.info("  • Windows: Use winget install OpenJS.NodeJS.LTS")
+                cli_logger.info("  • macOS: Use brew install node")
+                cli_logger.info("  • Linux: Use your distribution's package manager")
             except Exception as e:
                 cli_logger.error(f"Error running MCP Inspector: {e}")
 
@@ -256,6 +283,15 @@ if __name__ == "__main__":
             cli_logger.info("  2. Send HTTP requests directly to http://localhost:8081/mcp")
             cli_logger.info("  3. Use the MCP client library in your code")
             
+            # Add more detailed information about using the MCP Inspector
+            cli_logger.info("\n🔍 Using the MCP Inspector:")
+            cli_logger.info("  • The Inspector provides a user-friendly interface at http://localhost:" + str(inspector_port))
+            cli_logger.info("  • It automatically connects to your MCP service at http://localhost:8081/mcp")
+            cli_logger.info("  • You can manually connect to any MCP service by entering its URL")
+            cli_logger.info("  • The Inspector works with any MCP-compatible service, not just this example")
+            cli_logger.info("  • For advanced usage, see the Inspector documentation at:")
+            cli_logger.info("    https://github.com/modelcontextprotocol/inspector")
+            
             # Example curl commands for direct testing
             cli_logger.info("\n🧪 Example curl command to test the add tool:")
             cli_logger.info('  curl -X POST http://localhost:8081/mcp \\')
@@ -272,6 +308,18 @@ if __name__ == "__main__":
                 cli_logger.info(
                     "💡 It will automatically connect to your MCP service at http://localhost:8081/mcp"
                 )
+                
+                # Add more detailed information about the Inspector features
+                cli_logger.info("\n🎮 MCP Inspector Features:")
+                cli_logger.info("  • Interactive UI for testing MCP tools without writing code")
+                cli_logger.info("  • Real-time request and response monitoring")
+                cli_logger.info("  • Parameter validation and type checking")
+                cli_logger.info("  • History of all tool calls for debugging")
+                cli_logger.info("  • Support for various MCP transport protocols")
+                cli_logger.info("  • Customizable connection settings")
+                
+                cli_logger.info("\n🔗 Inspector will be available at:")
+                cli_logger.info(f"  http://localhost:{inspector_port}/?transport=streamable-http&serverUrl=http://localhost:8081/mcp")
 
                 # Start inspector in main thread (blocking)
                 run_mcp_inspector()
@@ -282,6 +330,14 @@ if __name__ == "__main__":
                 cli_logger.info("  • Change the inspector port with --inspector-port if needed")
                 cli_logger.info("  • The example service demonstrates basic MCP functionality")
                 cli_logger.info("  • Study the example code to learn how to create your own MCP services")
+                
+                # Add troubleshooting tips for the MCP Inspector
+                cli_logger.info("\n🔧 Troubleshooting MCP Inspector:")
+                cli_logger.info("  • If the Inspector fails to start, ensure Node.js is installed correctly")
+                cli_logger.info("  • You may need to run 'npm install -g @modelcontextprotocol/inspector' manually")
+                cli_logger.info("  • Check if port " + str(inspector_port) + " is already in use by another application")
+                cli_logger.info("  • For network issues, ensure your firewall allows connections to the service")
+                cli_logger.info("  • For more help, visit: https://github.com/modelcontextprotocol/inspector/issues")
 
                 # Keep the main thread alive
                 try:
