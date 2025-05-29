@@ -51,6 +51,13 @@ def example_command(
     cli_logger.info("🚀 Starting MCP-CLI Example")
     cli_logger.info("This example demonstrates a simple arithmetic MCP service")
 
+    # Print information about command line arguments
+    cli_logger.info("\n📋 Command Line Arguments:")
+    cli_logger.info("  --with-inspector: Launch the MCP Inspector UI alongside the service")
+    cli_logger.info("                   This provides a visual interface for testing your MCP tools")
+    cli_logger.info("  --inspector-port: Set the port for the MCP Inspector UI (default: 6274)")
+    cli_logger.info("                   Change this if the default port is already in use")
+
     # Create temporary directory for example files
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
@@ -141,6 +148,17 @@ if __name__ == "__main__":
 
         cli_logger.info(f"📝 Created example service at: {example_file}")
 
+        # Print the example file content in a nicely formatted way
+        cli_logger.info("\n📄 Example Service Code:")
+        cli_logger.info("=" * 80)
+        
+        # Split the content by lines and print with line numbers
+        for i, line in enumerate(example_content.split('\n'), 1):
+            # Add line numbers for better readability
+            cli_logger.info(f"{i:3d} | {line}")
+            
+        cli_logger.info("=" * 80)
+
         # Function to run the MCP service
         def run_mcp_service():
             try:
@@ -227,9 +245,22 @@ if __name__ == "__main__":
             # Give the service a moment to start
             time.sleep(2)
 
-            cli_logger.info("✅ MCP service is running!")
-            cli_logger.info("🌐 Service URL: http://localhost:8081/mcp")
-            cli_logger.info("📚 Available tools: add, subtract, multiply, divide")
+            cli_logger.info("\n✅ MCP service is running!")
+            
+            # Provide detailed information about accessing the service
+            cli_logger.info("\n🔍 Service Information:")
+            cli_logger.info("  🌐 Service URL: http://localhost:8081/mcp")
+            cli_logger.info("  📚 Available tools: add, subtract, multiply, divide")
+            cli_logger.info("\n💡 Ways to interact with your service:")
+            cli_logger.info("  1. Use the MCP Inspector UI (with --with-inspector flag)")
+            cli_logger.info("  2. Send HTTP requests directly to http://localhost:8081/mcp")
+            cli_logger.info("  3. Use the MCP client library in your code")
+            
+            # Example curl commands for direct testing
+            cli_logger.info("\n🧪 Example curl command to test the add tool:")
+            cli_logger.info('  curl -X POST http://localhost:8081/mcp \\')
+            cli_logger.info('    -H "Content-Type: application/json" \\')
+            cli_logger.info('    -d \'{\'"tool_name\'": "add", "parameters": {"a": 5, "b": 3}}\'')
 
             if with_inspector:
                 cli_logger.info(
@@ -245,10 +276,12 @@ if __name__ == "__main__":
                 # Start inspector in main thread (blocking)
                 run_mcp_inspector()
             else:
-                cli_logger.info("🚀 Example service is running. Press Ctrl+C to stop.")
-                cli_logger.info(
-                    "💡 Add --with-inspector to launch the visual testing interface"
-                )
+                cli_logger.info("\n🚀 Example service is running. Press Ctrl+C to stop.")
+                cli_logger.info("\n💡 Tips:")
+                cli_logger.info("  • Add --with-inspector to launch the visual testing interface")
+                cli_logger.info("  • Change the inspector port with --inspector-port if needed")
+                cli_logger.info("  • The example service demonstrates basic MCP functionality")
+                cli_logger.info("  • Study the example code to learn how to create your own MCP services")
 
                 # Keep the main thread alive
                 try:
