@@ -17,18 +17,31 @@ sys.path.insert(0, project_root)
 
 # Define function to dynamically import the CLI app
 def _import_cli_app():
-    # First try direct import
+    # First try the installed package import (when installed via pip)
     try:
-        from src.mcpy_cli.cli import app as cli_app
-
+        from mcpy_cli.cli.main import app as cli_app
         return cli_app
     except ImportError:
         pass
 
-    # Try alternative import paths
+    # Then try development import paths
+    try:
+        from src.mcpy_cli.cli.main import app as cli_app
+        return cli_app
+    except ImportError:
+        pass
+
+    # Try relative import
+    try:
+        from .cli.main import app as cli_app
+        return cli_app
+    except ImportError:
+        pass
+
+    # Try alternative import paths using importlib
     try:
         spec = importlib.util.spec_from_file_location(
-            "cli", os.path.join(current_dir, "cli.py")
+            "cli_main", os.path.join(current_dir, "cli", "main.py")
         )
         if spec and spec.loader:
             cli_module = importlib.util.module_from_spec(spec)
