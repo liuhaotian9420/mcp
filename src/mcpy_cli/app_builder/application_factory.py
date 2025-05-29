@@ -6,13 +6,14 @@ import logging
 from typing import List, Optional, Any, cast
 from contextlib import asynccontextmanager, AsyncExitStack
 from starlette.applications import Starlette
-from starlette.routing import Mount
+from starlette.routing import Mount, Route
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
+from starlette.responses import JSONResponse
 
 from ..utils import TransformationError
 from .mocking import get_fastmcp_class, FastMCPType
-from .middleware import SessionMiddleware
+from .middleware import SessionMiddleware, SSEDebugMiddleware, AsyncSessionMiddleware
 from .caching import SessionToolCallCache
 from .instance_factory import discover_and_group_functions, create_mcp_instances
 
@@ -82,7 +83,15 @@ def create_mcp_application(
 
     # Set up middleware stack
     middleware = []
-    middleware.append(Middleware(SessionMiddleware))
+    
+    # Use async-compatible middleware for SSE, regular middleware for others
+    if legacy_sse:
+        # Use AsyncSessionMiddleware for SSE compatibility (uses contextvars instead of thread-local)
+        middleware.append(Middleware(AsyncSessionMiddleware))
+        logger.info("Using AsyncSessionMiddleware for SSE compatibility")
+    else:
+        # Use regular SessionMiddleware for non-SSE modes
+        middleware.append(Middleware(SessionMiddleware))
 
     if cors_enabled:
         effective_cors_origins = (
@@ -97,6 +106,11 @@ def create_mcp_application(
                 allow_headers=["*"],
             )
         )
+
+    # Add debug middleware for legacy SSE mode to help diagnose cloud issues
+    if legacy_sse:
+        middleware.insert(0, Middleware(SSEDebugMiddleware))
+        logger.info("Added SSEDebugMiddleware for legacy SSE debugging")
 
     # Create event store and cache as needed
     event_store = None
@@ -188,12 +202,24 @@ def _create_composed_application(
 
     # Create the ASGI app
     if legacy_sse:
-        # Use legacy SSE transport via FastMCP's http_app method
-        main_asgi_app = main_mcp.http_app(
-            transport="sse",
-            path=mcp_service_base_path
+        # Use proper SSE transport via create_sse_app function
+        from fastmcp.server.http import create_sse_app
+        
+        logger.info(f"Creating proper SSE transport with {len(middleware)} middleware components")
+        for i, mw in enumerate(middleware):
+            logger.info(f"  Middleware {i}: {mw.cls.__name__}")
+        
+        # Split the base path into SSE connection and message paths
+        sse_path = mcp_service_base_path
+        message_path = mcp_service_base_path + "/messages"
+        
+        main_asgi_app = create_sse_app(
+            server=cast(Any, main_mcp),
+            message_path=message_path,
+            sse_path=sse_path,
+            middleware=middleware if middleware else None,
         )
-        logger.info("Using legacy SSE transport via FastMCP.http_app")
+        logger.info(f"Using proper SSE transport with endpoints: {sse_path} (SSE), {message_path} (messages)")
     else:
         # Use modern streamable HTTP transport
         from fastmcp.server.http import create_streamable_http_app
@@ -242,12 +268,20 @@ def _create_routed_application(
 
     for file_path, (file_mcp, route_path, tools_registered) in mcp_instances.items():
         if legacy_sse:
-            # Use legacy SSE transport via FastMCP's http_app method
-            file_app = file_mcp.http_app(
-                transport="sse",
-                path=mcp_service_base_path
+            # Use proper SSE transport via create_sse_app function
+            from fastmcp.server.http import create_sse_app
+            
+            # Split the base path into SSE connection and message paths
+            sse_path = mcp_service_base_path
+            message_path = mcp_service_base_path + "/messages"
+            
+            file_app = create_sse_app(
+                server=cast(Any, file_mcp),
+                message_path=message_path,
+                sse_path=sse_path,
+                middleware=middleware if middleware else None,
             )
-            logger.info(f"Using legacy SSE transport for '{file_mcp.name}' via FastMCP.http_app")
+            logger.info(f"Using proper SSE transport for '{file_mcp.name}' with endpoints: {sse_path} (SSE), {message_path} (messages)")
         else:
             # Use modern streamable HTTP transport
             from fastmcp.server.http import create_streamable_http_app

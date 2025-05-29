@@ -37,8 +37,7 @@ mcp = FastMCP("AdvancedASGI_MCP_Server")
 server_root_path = "/mcp-server"  # Root for the MCP service group
 mcp_base_path = "/mcp"  # Base path for MCP protocol endpoints (tools, resources etc)
 
-# Create the ASGI app from FastMCP, specifying its internal base path
-mcp_asgi_app = mcp.http_app(path=mcp_base_path,transport="sse")
+
 
 
 @mcp.tool()
@@ -93,6 +92,9 @@ def get_server_time() -> Dict[str, Any]:
         "message": "Time from the Advanced ASGI MCP server.",
     }
 
+# Create the ASGI app from FastMCP, specifying its internal base path
+mcp_asgi_app = mcp.http_app(path="",transport="sse")
+
 
 # Create the main Starlette application
 app = Starlette(
@@ -117,7 +119,7 @@ if __name__ == "__main__":
     )
 
     uvicorn.run(
-        app,  # Run the main Starlette app
+        mcp_asgi_app,  # Run the main Starlette app
         host="0.0.0.0",
         port=port,
         log_level="info",  # Uvicorn's log level, can be different from app loggers
