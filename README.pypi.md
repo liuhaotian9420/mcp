@@ -15,9 +15,9 @@
 - 🔄 **An MCP of two modes**:
   - **Composed Mode**: All tools under a single endpoint with automatic namespacing
   - **Routed Mode**: Microservice-style with directory-based routing
-
 - 🌐 **Complete JSON-RPC Implementation**: Full compliance with MCP protocol specification
 - 🎨 **Type-Safe by Design**: Automatic validation using Python type hints and docstrings
+- 🔌 **Multiple Transport Options**: Modern streamable HTTP (default) and legacy SSE support
 
 ## 🔥 Quick Start
 
@@ -188,14 +188,37 @@ mcpy-cli run --source-path ./my_tools --mode routed
 
 ### Local Development
 ```bash
-# Quick development with hot reload
+# Quick development with hot reload (default: modern streamable HTTP)
 mcpy-cli run --source-path ./my_project --reload True
+
+# Use legacy SSE transport (deprecated, only for compatibility)
+mcpy-cli run --source-path ./my_project --legacy-sse
 
 # Expose on all interfaces (for network testing)
 mcpy-cli run --source-path ./my_project --host 0.0.0.0 --port 9000
 
 # With custom server name and service path
 mcpy-cli run --source-path ./my_project --mcp-name CustomTools --server-root /api
+```
+
+### Transport Configuration
+
+**Default: Streamable HTTP** (Recommended)
+- Single endpoint, more stable
+- Better compatibility with cloud environments
+- No path issues with proxies or load balancers
+
+**Legacy SSE Transport** (Deprecated)
+- Dual-endpoint architecture (SSE + messages)
+- May encounter issues in cloud environments (Knative/Istio)
+- Only use for backward compatibility when required
+
+```bash
+# Modern streamable HTTP (default)
+mcpy-cli run --source-path ./my_tools
+
+# Legacy SSE (only if needed for compatibility)
+mcpy-cli run --source-path ./my_tools --legacy-sse
 ```
 
 ### Containerized Deployment

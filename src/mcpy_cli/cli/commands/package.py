@@ -53,14 +53,20 @@ def package_command(
             help="Number of uvicorn workers in the packaged start script.",
             rich_help_panel="Packaging Configuration",
         ),
-    ] = None,
-    mw_service: Annotated[
+    ] = None,    mw_service: Annotated[
         bool,
         typer.Option(
             help="ModelWhale service mode defaults for package (host 0.0.0.0, port 8080). Overrides package-host/port if they are at default.",
             rich_help_panel="Packaging Configuration",
         ),
     ] = True,
+    mw_deploy: Annotated[
+        bool,
+        typer.Option(
+            help="Display ModelWhale deployment commands after packaging.",
+            rich_help_panel="Packaging Configuration",
+        ),
+    ] = False,
 ):
     """
     Package an MCP service into a zip file for deployment using a lightweight CLI-based approach.
@@ -182,11 +188,14 @@ def package_command(
             event_store_path=common_opts.event_store_path,
             stateless_http=common_opts.stateless_http,
             json_response=common_opts.json_response,
-            legacy_sse=common_opts.legacy_sse,
-        )
+            legacy_sse=common_opts.legacy_sse,        )
         cli_logger.info(
             f"Successfully packaged MCP service into '{package_name}.zip' using the CLI-based approach."
         )
+
+        # Display deployment commands if mw_deploy flag is set
+        if mw_deploy:
+            _display_deployment_commands(package_name, cli_logger)
 
     except TransformationError as e:
         cli_logger.error(f"Failed to package MCP application: {e}")
@@ -207,3 +216,18 @@ def package_command(
             f"An unexpected error occurred during packaging: {e}", exc_info=True
         )
         sys.exit(1)
+
+
+def _display_deployment_commands(package_name: str, cli_logger: logging.Logger):
+    """Display formatted deployment commands for ModelWhale."""
+    commands = f"chmod 777 /{package_name}/project/start.sh;./{package_name}/project/start.sh"
+    
+    # Use rich formatting for better readability
+    cli_logger.info("")
+    cli_logger.info("=" * 60)
+    cli_logger.info("📦 请使用如下的命令启动服务:")
+    cli_logger.info("")
+    cli_logger.info(f"   {commands}")
+    cli_logger.info("")
+    cli_logger.info("=" * 60)
+    cli_logger.info("")

@@ -5,6 +5,9 @@
 本服务由 `{mcp_server_name}`强力驱动，旨在为您提供一套工具，以协助您完成 **{service_purpose_description}**。
 <!-- 打包者请注意：请将 '{service_purpose_description}' 替换为对本服务用途的简明用户友好描述。 -->
 
+<!-- 打包者请注意：如果使用了 SSE 作为通讯协议, 请在这里说明 -->
+本服务默认使用 streamable HTTP 作为通讯协议。
+
 它使用 `mcpy-cli` 进行打包，以便直接与模型上下文协议 (MCP) 工具进行交互。
 
 ## 服务内容
