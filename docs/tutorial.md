@@ -25,11 +25,19 @@ def add(a: float, b: float) -> Dict[str, float]:
 在命令行中运行（假设你已安装 mcpy-cli）：
 
 ```powershell
+# 推荐：使用默认的 Streamable HTTP 传输协议
 mcpy-cli run --source-path my_tools.py --host 127.0.0.1 --port 8080
 ```
 
 - 默认会自动发现所有带类型注解的函数并暴露为工具。
 - 访问 http://127.0.0.1:8080/mcp/docs 可查看自动生成的 OpenAPI 文档。
+- 默认使用 Streamable HTTP 传输协议，具有更好的云环境兼容性。
+
+> **注意**: 如果你需要向后兼容旧系统，可以使用 `--legacy-sse` 参数，但这是已弃用的模式，在云环境中存在已知问题：
+> ```powershell
+> # 仅用于向后兼容（不推荐）
+> mcpy-cli run --source-path my_tools.py --host 127.0.0.1 --port 8080 --legacy-sse
+> ```
 
 ---
 

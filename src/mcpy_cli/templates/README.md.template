@@ -30,7 +30,10 @@ Here's how you can start using the tools provided by this service:
 The service is available at:
 - **Base URL**: `{service_url_example}`
 - **Interactive Test Page**: Visit `{service_url_example}/mcp` in your browser to see available tools and test them interactively.
+<!-- Note to packager: Replace '{service_url_example}' with the actual URL where the service is hosted. -->
 
+**Note**: This service uses modern streamable HTTP transport by default for better stability. If you need legacy SSE transport for compatibility reasons, please contact your service administrator.
+<!-- Note to packager: If the service uses SSE transport, you MUST mention it here. -->
 ### 3. Calling a Tool (Python Example)
 
 You can call any tool using a simple Python script. Here's an example:

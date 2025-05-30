@@ -137,6 +137,7 @@ mcpy-cli run --source-path ./my_tools --mode routed
 | `--host`       | 服务监听地址                 | 127.0.0.1       |
 | `--mcp-name`   | 服务名称                     | 自动生成        |
 | `--mode`       | 架构模式 (composed/routed)    | composed        |
+| `--legacy-sse` | 使用传统SSE传输 (已弃用)      | 关闭            |
 
 
 ## 🤝 客户端使用
@@ -153,7 +154,23 @@ mcpy-cli run --source-path ./my_tools --mode routed
 
 ## 🧀 进阶配置
 
-### 1. 服务持久化
+### 1. 传输协议选择
+
+`mcpy-cli` 支持多种传输协议配置：
+
+- **默认模式（Streamable HTTP）**：推荐使用，更稳定和简单
+  ```bash
+  mcpy-cli run --source-path ./my_tools
+  ```
+
+- **传统SSE模式**：通过 `--legacy-sse` 启用（已弃用，仅供兼容性使用）
+  ```bash
+  mcpy-cli run --source-path ./my_tools --legacy-sse
+  ```
+  
+  ⚠️ **注意**：传统SSE模式在某些云环境（如Knative/Istio）中可能遇到路径问题，建议使用默认的Streamable HTTP模式。
+
+### 2. 服务持久化
 
 `mcpy-cli` 支持通过事件存储（EventStore）实现服务持久化和状态恢复功能。当启用此特性时，服务会将 JSON-RPC 消息存储起来，允许在服务中断或重启后从特定事件点恢复执行。
 
@@ -168,7 +185,7 @@ mcpy-cli run --source-path ./my_tools --enable-event-store --event-store-path ./
 
 此功能对于需要长时间运行或维护会话状态的 MCP 服务特别有用。
 
-### 2. 缓存
+### 3. 缓存
 
 为了提高性能并减少重复计算，工具提供了会话级别的工具调用缓存（`SessionToolCallCache`）。
 

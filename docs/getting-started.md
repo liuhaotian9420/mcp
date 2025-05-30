@@ -132,7 +132,7 @@ def greet_user(name: str, language: str = "chinese") -> str:
 
 ### 🚀 步骤 3: 启动服务
 
-#### 使用 MCP 服务运行器启动
+#### 默认启动（推荐 - 使用现代流式HTTP传输）
 
 ```bash
 mcpy-cli run --source-path tools.py --port 8080
@@ -143,6 +143,18 @@ mcpy-cli run --source-path tools.py --port 8080
 ```bash
 uvx mcpy-cli run --source-path tools.py --port 8080
 ```
+
+#### 传统SSE模式启动（仅兼容性用途）
+
+如果需要使用传统SSE传输（不推荐，可能在云环境中有问题）：
+
+```bash
+mcpy-cli run --source-path tools.py --port 8080 --legacy-sse
+```
+
+⚠️ **注意**：传统SSE模式已弃用，仅在需要向后兼容时使用。现代流式HTTP传输更稳定且兼容性更好。
+
+#### 启动输出
 
 你将看到如下输出：
 
@@ -404,6 +416,8 @@ CORS_ORIGINS=*
 
 ### 🚀 高级启动选项
 
+#### 基本配置
+
 ```bash
 mcpy-cli run \
   --source-path . \
@@ -411,6 +425,36 @@ mcpy-cli run \
   --host 0.0.0.0 \
   --mcp-name "AdvancedMCPService" \
   --mode composed
+```
+
+#### 传输协议配置
+
+**默认模式（现代流式HTTP）**：
+```bash
+mcpy-cli run --source-path . --port 8080
+```
+
+**传统SSE模式（已弃用）**：
+```bash
+mcpy-cli run --source-path . --port 8080 --legacy-sse
+```
+
+⚠️ **重要提醒**：
+- 现代流式HTTP传输是默认且推荐的选择
+- 传统SSE模式仅用于向后兼容，在云环境中可能遇到问题
+- 如果您正在使用代理或负载均衡器，强烈建议使用默认的流式HTTP模式
+
+#### 完整配置示例
+
+```bash
+mcpy-cli run \
+  --source-path ./my_tools \
+  --port 8080 \
+  --host 0.0.0.0 \
+  --mcp-name "ProductionService" \
+  --mode routed \
+  --enable-event-store \
+  --event-store-path ./events.db
 ```
 
 ---
