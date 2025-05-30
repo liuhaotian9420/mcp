@@ -3,17 +3,18 @@ Factory for creating complete MCP applications with multiple FastMCP instances.
 """
 
 import logging
+import os
+
 from typing import List, Optional, Any, cast
 from contextlib import asynccontextmanager, AsyncExitStack
 from starlette.applications import Starlette
-from starlette.routing import Mount, Route
+from starlette.routing import Mount
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
-from starlette.responses import JSONResponse
 
 from ..utils import TransformationError
 from .mocking import get_fastmcp_class, FastMCPType
-from .middleware import SessionMiddleware, SSEDebugMiddleware, AsyncSessionMiddleware
+from .middleware import SessionMiddleware, SSEDebugMiddleware, AsyncSessionMiddleware, SSEURLRewriteMiddleware
 from .caching import SessionToolCallCache
 from .instance_factory import discover_and_group_functions, create_mcp_instances
 
@@ -110,6 +111,14 @@ def create_mcp_application(
     # Add debug middleware for legacy SSE mode to help diagnose cloud issues
     if legacy_sse:
         middleware.insert(0, Middleware(SSEDebugMiddleware))
+        # Add URL rewrite middleware to fix path issues
+        public_base_url = os.getenv('PUBLIC_BASE_URL', '')
+        app_root_path = os.getenv('root_path', '')
+        if app_root_path:
+            middleware.insert(0, Middleware(SSEURLRewriteMiddleware, 
+                                          base_url=public_base_url,
+                                          root_path=app_root_path))
+            logger.info(f"Added SSEURLRewriteMiddleware with root_path: {app_root_path}")
         logger.info("Added SSEDebugMiddleware for legacy SSE debugging")
 
     # Create event store and cache as needed
@@ -210,8 +219,8 @@ def _create_composed_application(
             logger.info(f"  Middleware {i}: {mw.cls.__name__}")
         
         # Split the base path into SSE connection and message paths
-        sse_path = mcp_service_base_path
-        message_path = mcp_service_base_path + "/messages"
+        sse_path = mcp_service_base_path + '/sse'
+        message_path = mcp_service_base_path + "/messages"        
         
         main_asgi_app = create_sse_app(
             server=cast(Any, main_mcp),
@@ -272,7 +281,7 @@ def _create_routed_application(
             from fastmcp.server.http import create_sse_app
             
             # Split the base path into SSE connection and message paths
-            sse_path = mcp_service_base_path
+            sse_path = mcp_service_base_path + '/sse'
             message_path = mcp_service_base_path + "/messages"
             
             file_app = create_sse_app(
@@ -292,6 +301,7 @@ def _create_routed_application(
                 event_store=event_store,
                 json_response=json_response,
                 stateless_http=stateless_http,
+                middleware=middleware if middleware else None,
             )
         routes.append(Mount("/" + route_path, app=file_app))
         apps.append(file_app)

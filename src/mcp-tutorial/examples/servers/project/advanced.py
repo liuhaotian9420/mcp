@@ -1,126 +1,150 @@
-"""
-Native FastMCP advanced example: MCP server integrated into a Starlette ASGI application.
-
-- Demonstrates mounting FastMCP within a larger Starlette app.
-- Includes an asynchronous tool that yields progress updates (streaming).
-- MCP endpoint typically at /mcp-server/mcp (configurable).
-- Run with: python native_advanced_asgi_mcp_example.py
-- Production-grade structure, docstrings, and type hints
-"""
-
 import uvicorn
-import time
-import asyncio
-from typing import Dict, Any, AsyncIterator  # Changed Iterator to AsyncIterator
-from fastmcp import FastMCP
+import os
+import logging
+# Import our custom middleware
+import re
+from typing import Optional
 
 from starlette.applications import Starlette
-from starlette.routing import Mount
+from starlette.routing import Mount, Route
+from starlette.middleware import Middleware
+from starlette.responses import JSONResponse
+from fastmcp.server.http import create_sse_app
+from fastmcp import FastMCP
 
-import logging
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# Configure basic logging for the example
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+
+class SSEURLRewriteMiddleware:
+    """
+    Middleware to rewrite URLs in SSE event streams.
+    Fixes path issues where clients receive relative URLs that need to be absolute.
+    """
+    
+    def __init__(self, app, base_url: Optional[str] = None, root_path: Optional[str] = None):
+        self.app = app
+        # Get base URL from environment or parameter
+        self.base_url = base_url or os.getenv('PUBLIC_BASE_URL', '')
+        # Get base url's existing root_path
+        self.root_path = root_path or os.getenv('root_path', '')
+        # Pattern to match SSE data lines with relative URLs
+        self.url_pattern = re.compile(r'(data:\s*)(/[^/][^\r\n]*)', re.MULTILINE)
+        logger.info(f"SSEURLRewriteMiddleware initialized with root_path: {self.root_path}")
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+            
+        # Only process SSE responses
+        request_path = scope.get("path", "")
+        logger.info(f"Current request_path: {request_path}")
+        if not ("/sse" in request_path or "/mcp" in request_path):
+            await self.app(scope, receive, send)
+            return
+            
+        logger.info(f"SSEURLRewriteMiddleware processing request: {request_path}")
+            
+        # Wrap the send function to intercept and modify SSE responses
+        async def rewrite_send(message):
+            logger.info(f"Current message: {message}")
+            if message["type"] == "http.response.body":
+                body = message.get("body", b"")
+                if body:
+                    try:
+                        text = body.decode("utf-8")
+                        # Check if this looks like SSE data
+                        if "data:" in text and self.root_path:
+                            logger.info(f"**Current text: {text}")
+                            # Rewrite relative URLs to absolute URLs
+                            modified_text = self.url_pattern.sub(
+                                rf'\1{self.root_path}\2', text
+                            )
+                            logger.info(f"**Current modified_text: {modified_text}")
+                            if modified_text != text:
+                                logger.info(f"URL rewrite applied: {text.strip()[:100]}... -> {modified_text.strip()[:100]}...")
+                                logger.info(f"The next post request will be sent to: {modified_text}")
+                            message = {
+                                **message,
+                                "body": modified_text.encode("utf-8")
+                            }
+                    except UnicodeDecodeError:
+                        # If we can't decode, pass through unchanged
+                        pass
+            
+            await send(message)
+        
+        await self.app(scope, receive, rewrite_send)
+
+mcp = FastMCP()
+
+@mcp.tool()
+async def hello() -> str:
+    return "Hello, world!"
+
+@mcp.tool()
+async def get_weather(city: str) -> str:
+    """Get weather information for a city."""
+    return f"The weather in {city} is sunny and 72°F"
+
+# Health check endpoint
+async def health_check(request):
+    return JSONResponse({"status": "healthy", "service": "advanced-mcp-with-middleware"})
+
+# Configuration
+PUBLIC_BASE_URL = os.getenv('PUBLIC_BASE_URL', '')
+
+# APP_ROOT_PATH looks like '/app/random_id/v1'
+APP_ROOT_PATH = os.getenv('root_path', '/app/v1')
+PUBLIC_BASE_URL = PUBLIC_BASE_URL + APP_ROOT_PATH 
+
+logger.info(f"Using PUBLIC_BASE_URL: {PUBLIC_BASE_URL}")
+
+# Create SSE app
+sse_app = create_sse_app(
+    server=mcp,
+    message_path='/random_id/v1/messages',
+    sse_path='/random_id/v1/sse',
+    middleware=[]
 )
-logger = logging.getLogger(__name__)  # Use current module name for logger
-fastmcp_logger = logging.getLogger("fastmcp")  # Access fastmcp's logger if needed
-fastmcp_logger.setLevel(logging.INFO)  # Or DEBUG for more verbosity from fastmcp
 
+# Set up middleware
+middleware = []
+if PUBLIC_BASE_URL:
+    middleware.append(Middleware(SSEURLRewriteMiddleware, 
+                                 base_url=PUBLIC_BASE_URL,
+                                 root_path=APP_ROOT_PATH))
+    logger.info("Added SSEURLRewriteMiddleware to middleware stack")
 
-# Create your FastMCP server
-# The name is for identification, e.g., in logs or client server_info
-mcp = FastMCP("AdvancedASGI_MCP_Server")
-
-# Define the root path where the MCP server will be mounted within Starlette
-# and the path for the MCP app itself. Endpoint: server_root_path + mcp_base_path
-server_root_path = "/mcp-server"  # Root for the MCP service group
-mcp_base_path = "/mcp"  # Base path for MCP protocol endpoints (tools, resources etc)
-
-
-
-
-@mcp.tool()
-def hello(name: str) -> str:
-    """A simple synchronous tool that returns a greeting."""
-    logger.info(f"Tool 'hello' called with name={name!r}")
-    return f"Hello, {name}! This is your Advanced ASGI MCP Server speaking."
-
-
-@mcp.tool()
-async def a_long_tool_call(seconds: int = 5) -> AsyncIterator[Dict[str, Any]]:
-    """
-    A long-running asynchronous tool that yields progress updates.
-
-    Args:
-        seconds (int): Approximate number of seconds the tool will run for.
-
-    Yields:
-        Dict[str, Any]: A dictionary containing progress information at each step.
-    """
-    logger.info(f"Tool 'a_long_tool_call' started with duration: {seconds}s")
-
-    total_steps = max(1, seconds * 2)  # Ensure at least 1 step, 2 steps per second
-    for step in range(1, total_steps + 1):
-        await asyncio.sleep(0.5)  # Simulate work for half a second
-
-        progress_percentage = (step / total_steps) * 100
-        yield {
-            "step": step,
-            "total_steps": total_steps,
-            "progress_percentage": round(progress_percentage, 2),
-            "status": "in_progress" if step < total_steps else "complete",
-            "message": f"Processing step {step} of {total_steps}...",
-        }
-
-    logger.info("Tool 'a_long_tool_call' completed")
-
-
-@mcp.tool()
-def get_server_time() -> Dict[str, Any]:
-    """
-    A tool that returns the current server time and a static message.
-
-    Returns:
-        Dict[str, Any]: A dictionary with server time information.
-    """
-    logger.info("Tool 'get_server_time' called")
-    return {
-        "success": True,
-        "timestamp_utc": time.time(),
-        "readable_time_utc": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime()),
-        "message": "Time from the Advanced ASGI MCP server.",
-    }
-
-# Create the ASGI app from FastMCP, specifying its internal base path
-mcp_asgi_app = mcp.http_app(path="",transport="sse")
-
-
-# Create the main Starlette application
-app = Starlette(
+# Create main app with middleware and proper mount path
+main_app = Starlette(
     routes=[
-        # Mount the FastMCP ASGI application under the defined server_root_path
-        Mount(server_root_path, app=mcp_asgi_app),
-        # You can add other Starlette routes, Mounts, or WebSockets here
-        # e.g., Route("/health", endpoint=health_check_function)
+        Route("/health", endpoint=health_check),
+        Mount('/mcp-server', app=sse_app)
     ],
-    # The lifespan context from mcp_asgi_app handles setup/teardown for FastMCP components
-    lifespan=mcp_asgi_app.router.lifespan_context,
+    middleware=middleware,
+    lifespan=sse_app.router.lifespan_context
 )
+
+# create main app with root path
+# main_app_with_root_path = Starlette(
+#     routes=[
+#         Route("/health", endpoint=health_check),
+#         Mount(APP_ROOT_PATH, app=main_app)
+#     ],
+#     # middleware=middleware,
+#     lifespan=sse_app.router.lifespan_context
+# )
 
 if __name__ == "__main__":
     port = 8080
-    logger.info("Starting Advanced ASGI MCP service.")
-    logger.info(
-        f"MCP tools will be available under: http://127.0.0.1:{port}{server_root_path}{mcp_base_path}"
-    )
-    logger.info(
-        f"  e.g., list_tools might be POST to http://127.0.0.1:{port}{server_root_path}{mcp_base_path}/list_tools"
-    )
-
-    uvicorn.run(
-        mcp_asgi_app,  # Run the main Starlette app
-        host="0.0.0.0",
-        port=port,
-        log_level="info",  # Uvicorn's log level, can be different from app loggers
-    )
+    logger.info("Starting Advanced MCP service with SSE URL rewrite middleware")
+    logger.info(f"Health check: http://127.0.0.1:{port}/health")
+    logger.info(f"MCP SSE endpoint: http://127.0.0.1:{port}/mcp-server/sse")
+    logger.info(f"MCP messages endpoint: http://127.0.0.1:{port}/mcp-server/messages")
+    logger.info(f"URLs will be rewritten with base: {PUBLIC_BASE_URL}")
+    
+    uvicorn.run(main_app, host="0.0.0.0", port=8080)

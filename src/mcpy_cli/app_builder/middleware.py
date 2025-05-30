@@ -6,6 +6,8 @@ import logging
 import threading
 from typing import Optional
 from contextvars import ContextVar
+import re
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -240,3 +242,58 @@ class AsyncSessionMiddleware:
             # For non-HTTP requests (like WebSocket), just pass through
             logger.debug(f"AsyncSessionMiddleware: Passing through non-HTTP request: {scope.get('type', 'unknown')}")
             await self.app(scope, receive, send)
+
+
+class SSEURLRewriteMiddleware:
+    """
+    Middleware to rewrite URLs in SSE event streams.
+    Fixes path issues where clients receive relative URLs that need to be absolute.
+    """
+    
+    def __init__(self, app, base_url: Optional[str] = None, root_path: Optional[str] = None):
+        self.app = app
+        # Get base URL from environment or parameter
+        self.base_url = base_url or os.getenv('PUBLIC_BASE_URL', '')
+        # Get base url's existing root_path
+        self.root_path = root_path or os.getenv('root_path', '')
+        # Pattern to match SSE data lines with relative URLs
+        self.url_pattern = re.compile(r'(data:\s*)(/[^/][^\r\n]*)', re.MULTILINE)
+        logger.info(f"SSEURLRewriteMiddleware initialized with root_path: {self.root_path}")
+        
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+            
+        # Only process SSE responses
+        request_path = scope.get("path", "")
+        if not ("/sse" in request_path or "/mcp" in request_path):
+            await self.app(scope, receive, send)
+            return
+            
+        # Wrap the send function to intercept and modify SSE responses
+        async def rewrite_send(message):
+            if message["type"] == "http.response.body":
+                body = message.get("body", b"")
+                if body:
+                    try:
+                        text = body.decode("utf-8")
+                        # Check if this looks like SSE data
+                        if "data:" in text and self.root_path:
+                            # Rewrite relative URLs to include root_path
+                            modified_text = self.url_pattern.sub(
+                                rf'\1{self.root_path}\2', text
+                            )
+                            if modified_text != text:
+                                logger.info(f"URL rewrite applied: {text.strip()[:100]}... -> {modified_text.strip()[:100]}...")
+                            message = {
+                                **message,
+                                "body": modified_text.encode("utf-8")
+                            }
+                    except UnicodeDecodeError:
+                        # If we can't decode, pass through unchanged
+                        pass
+            
+            await send(message)
+        
+        await self.app(scope, receive, rewrite_send)
